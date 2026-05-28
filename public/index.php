@@ -31,6 +31,10 @@ define('COMPOSER_PATH', ROOTPATH . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.ph
 require FCPATH . '../vendor/autoload.php';
 require SYSTEMPATH . 'Common.php';
 
+// Add system/Config as fallback so CI4.7 system configs are found
+// when not overridden in app/Config/
+service('autoloader')->addNamespace('Config', SYSTEMPATH . 'Config');
+
 $app = \Config\Services::codeigniter();
 $app->initialize();
 $context = is_cli() ? 'php-cli' : 'web';
