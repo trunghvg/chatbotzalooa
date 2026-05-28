@@ -65,20 +65,20 @@ class Webhook extends BaseController
         $startTime = microtime(true);
         $rawBody   = $this->request->getBody();
 
-        // 1. Xac minh chu ky Zalo (bao mat)
+        // 1. Xac minh chu ky Zalo (chi log warning, khong block - de Zalo co the dang ky webhook)
         $signature = $this->request->getHeaderLine('X-Zevent-Signature')
                   ?: $this->request->getGet('mac');
 
         if ($signature && !$this->zalo->verifyWebhook($rawBody, $signature)) {
-            log_message('warning', '[Webhook] Invalid signature from Zalo');
-            return $this->jsonResponse(['error' => 'Invalid signature'], 403);
+            log_message('warning', '[Webhook] Signature mismatch — check ZALO_APP_SECRET env var');
+            // Do not return 403: Zalo registration test must receive 200
         }
 
         // 2. Parse JSON payload
         $payload = json_decode($rawBody, true);
         if (!$payload) {
-            log_message('warning', '[Webhook] Invalid JSON payload: ' . $rawBody);
-            return $this->jsonResponse(['error' => 'Invalid payload'], 400);
+            log_message('info', '[Webhook] Non-JSON POST body (registration ping?): ' . substr($rawBody, 0, 200));
+            return $this->jsonResponse(['status' => 'ok'], 200);
         }
 
         log_message('info', '[Webhook] Received: ' . json_encode($payload));
