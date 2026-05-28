@@ -19,7 +19,7 @@ class Routing extends BaseConfig
     public string $defaultController = 'Admin';
     public string $defaultMethod = 'index';
     public bool $translateURIDashes = false;
-    public string $override404 = '';
+    public string $override404 = 'App\Controllers\Errors::show404';
     public bool $autoRoute = false;
     public bool $prioritize = false;
     public bool $useControllerAttributes = false;
