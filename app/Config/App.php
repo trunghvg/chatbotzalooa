@@ -6,8 +6,8 @@ use CodeIgniter\Config\BaseConfig;
 
 class App extends BaseConfig
 {
-    // Base URL
-    public string $baseURL = 'http://localhost:8080/';
+    // Base URL — reads APP_URL env var, falls back to auto-detect
+    public string $baseURL = '';
     public array $allowedHostnames = [];
     public string $indexPage = '';
     public string $uriProtocol = 'REQUEST_URI';
