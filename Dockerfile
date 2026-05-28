@@ -31,7 +31,8 @@ WORKDIR /app
 COPY . .
 
 # Cai PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 # Tao thu muc writable
 RUN mkdir -p writable/logs writable/cache writable/session writable/uploads \
