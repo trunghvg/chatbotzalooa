@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
+
+# Bao mat: chan truy cap cac file nhay cam
+<FilesMatch "\.(env|log|git|htaccess)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

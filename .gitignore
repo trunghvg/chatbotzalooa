@@ -1,0 +1,29 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Composer
+/vendor/
+
+# Writable (logs, cache, session)
+/writable/cache/*
+/writable/logs/*
+/writable/session/*
+/writable/uploads/*
+!/writable/cache/.gitkeep
+!/writable/logs/.gitkeep
+!/writable/cache/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PHP
+*.log
