@@ -71,7 +71,7 @@ class Database extends Config
             // Local / .env tung bien rieng
             $this->default = [
                 'DSN'          => '',
-                'hostname'     => getenv('DB_HOST') ?: env('database.default.hostname', 'localhost'),
+                'hostname'     => getenv('DB_HOST') ?: env('database.default.hostname', '127.0.0.1'),
                 'username'     => getenv('DB_USER') ?: env('database.default.username', 'root'),
                 'password'     => getenv('DB_PASS') ?: env('database.default.password', ''),
                 'database'     => getenv('DB_NAME') ?: env('database.default.database', 'chatbotzalooa'),
