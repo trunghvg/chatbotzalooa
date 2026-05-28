@@ -5,12 +5,6 @@ namespace App\Controllers;
 use App\Models\SettingModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
-/**
- * Xu ly Zalo OAuth 2.0 de lay Access Token va Refresh Token
- *
- * Buoc 1: /zalo/authorize → Chuyen nguoi dung den Zalo de cap quyen
- * Buoc 2: /zalo/callback  → Nhan code va doi lay token
- */
 class ZaloAuth extends BaseController
 {
     private const OAUTH_BASE = 'https://oauth.zaloapp.com/v4';
@@ -22,9 +16,6 @@ class ZaloAuth extends BaseController
         $this->settingModel = new SettingModel();
     }
 
-    /**
-     * Buoc 1: Chuyen nguoi dung den trang dang nhap Zalo
-     */
     public function authorize(): ResponseInterface
     {
         $this->requireAuth();
@@ -32,31 +23,31 @@ class ZaloAuth extends BaseController
         $appId         = env('ZALO_APP_ID', '');
         $redirectUri   = base_url('zalo/callback');
         $codeChallenge = $this->generateCodeChallenge();
-        $state         = bin2hex(random_bytes(16));
 
-        session()->set('zalo_code_verifier', $codeChallenge['verifier']);
-        session()->set('zalo_oauth_state', $state);
+        // Encode verifier in state (no session needed — survives container restarts)
+        $state = rtrim(strtr(base64_encode(json_encode([
+            'v' => $codeChallenge['verifier'],
+            'r' => bin2hex(random_bytes(8)),
+        ])), '+/', '-_'), '=');
 
         $params = http_build_query([
-            'app_id'        => $appId,
-            'redirect_uri'  => $redirectUri,
-            'code_challenge'=> $codeChallenge['challenge'],
-            'state'         => $state,
+            'app_id'         => $appId,
+            'redirect_uri'   => $redirectUri,
+            'code_challenge' => $codeChallenge['challenge'],
+            'state'          => $state,
         ]);
 
         return redirect()->to(self::OAUTH_BASE . '/permission?' . $params);
     }
 
-    /**
-     * Buoc 2: Nhan authorization code tu Zalo, doi lay token
-     */
     public function callback(): string
     {
         $this->requireAuth();
 
-        $code      = $this->request->getGet('code');
-        $oaId      = $this->request->getGet('oa_id');
-        $error     = $this->request->getGet('error');
+        $code  = $this->request->getGet('code');
+        $oaId  = $this->request->getGet('oa_id');
+        $state = $this->request->getGet('state');
+        $error = $this->request->getGet('error');
 
         if ($error) {
             return view('admin/oauth_result', [
@@ -74,12 +65,18 @@ class ZaloAuth extends BaseController
             ]);
         }
 
-        $codeVerifier = session()->get('zalo_code_verifier');
-        $result       = $this->exchangeCodeForToken($code, $codeVerifier);
+        // Recover code_verifier from state parameter
+        $codeVerifier = '';
+        if ($state) {
+            $decoded = json_decode(base64_decode(strtr($state, '-_', '+/')), true);
+            $codeVerifier = $decoded['v'] ?? '';
+        }
+
+        $result = $this->exchangeCodeForToken($code, $codeVerifier);
 
         if (isset($result['access_token'])) {
-            $this->settingModel->saveSetting('zalo_access_token', $result['access_token']);
-            $this->settingModel->saveSetting('zalo_refresh_token', $result['refresh_token'] ?? '');
+            $this->settingModel->saveSetting('zalo_access_token',    $result['access_token']);
+            $this->settingModel->saveSetting('zalo_refresh_token',   $result['refresh_token'] ?? '');
             $this->settingModel->saveSetting('zalo_token_expires_at',
                 date('Y-m-d H:i:s', time() + ($result['expires_in'] ?? 3600)));
             $this->settingModel->saveSetting('zalo_oa_id', $oaId ?? env('ZALO_OA_ID', ''));
@@ -96,13 +93,10 @@ class ZaloAuth extends BaseController
         return view('admin/oauth_result', [
             'title'   => 'Xác thực Zalo',
             'success' => false,
-            'message' => 'Lỗi: ' . json_encode($result),
+            'message' => 'Lỗi đổi token: ' . json_encode($result),
         ]);
     }
 
-    // ----------------------------------------------------------------
-    // PKCE helpers
-    // ----------------------------------------------------------------
     private function generateCodeChallenge(): array
     {
         $verifier  = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
