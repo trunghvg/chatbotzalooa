@@ -171,7 +171,10 @@
             <i class="bi bi-journal-text"></i> Nhật ký tin nhắn
         </a>
 
-        <div class="nav-section">Cấu hình</div>
+        <div class="nav-section">Cấu hình AI</div>
+        <a href="<?= base_url('admin/knowledge') ?>" class="nav-link <?= str_starts_with(uri_string(), 'admin/knowledge') ? 'active' : '' ?>">
+            <i class="bi bi-database-fill"></i> Cơ sở kiến thức
+        </a>
         <a href="<?= base_url('admin/prompt') ?>" class="nav-link <?= str_starts_with(uri_string(), 'admin/prompt') ? 'active' : '' ?>">
             <i class="bi bi-cpu-fill"></i> System Prompt AI
         </a>

@@ -44,6 +44,16 @@ $routes->post('admin/settings', 'Admin::saveSettings');
 $routes->get('admin/prompt', 'Admin::prompt');
 $routes->post('admin/prompt', 'Admin::savePrompt');
 
+// Knowledge Base - co so kien thuc cho chatbot
+$routes->get('admin/knowledge', 'Admin::knowledge');
+$routes->get('admin/knowledge/create', 'Admin::knowledgeCreate');
+$routes->post('admin/knowledge/store', 'Admin::knowledgeStore');
+$routes->get('admin/knowledge/edit/(:num)', 'Admin::knowledgeEdit/$1');
+$routes->post('admin/knowledge/update/(:num)', 'Admin::knowledgeUpdate/$1');
+$routes->delete('admin/knowledge/(:num)', 'Admin::knowledgeDelete/$1');
+$routes->post('admin/knowledge/toggle/(:num)', 'Admin::knowledgeToggle/$1');
+$routes->post('admin/knowledge/import', 'Admin::knowledgeImport');
+
 // API cho admin (AJAX)
 $routes->get('admin/api/stats', 'Admin::apiStats');
 $routes->post('admin/api/test-claude', 'Admin::testClaude');

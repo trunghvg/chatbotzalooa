@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Libraries\ClaudeAI;
 use App\Libraries\ZaloOA;
 use App\Models\ConversationModel;
+use App\Models\KnowledgeModel;
 use App\Models\MessageModel;
 use App\Models\SettingModel;
 
@@ -13,12 +14,14 @@ class Admin extends BaseController
     private ConversationModel $conversationModel;
     private MessageModel      $messageModel;
     private SettingModel      $settingModel;
+    private KnowledgeModel    $knowledgeModel;
 
     public function __construct()
     {
         $this->conversationModel = new ConversationModel();
         $this->messageModel      = new MessageModel();
         $this->settingModel      = new SettingModel();
+        $this->knowledgeModel    = new KnowledgeModel();
     }
 
     // ----------------------------------------------------------------
@@ -216,6 +219,161 @@ class Admin extends BaseController
             ]);
         } catch (\Throwable $e) {
             return $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // KNOWLEDGE BASE
+    // ----------------------------------------------------------------
+    public function knowledge(): string
+    {
+        $this->requireAuth();
+
+        $page    = (int) ($this->request->getGet('page') ?? 1);
+        $page    = max(1, $page);
+        $perPage = 20;
+
+        $total   = $this->knowledgeModel->countAllResults(false);
+        $entries = $this->knowledgeModel
+                        ->orderBy('sort_order', 'ASC')
+                        ->orderBy('category', 'ASC')
+                        ->limit($perPage, ($page - 1) * $perPage)
+                        ->findAll();
+
+        return view('admin/knowledge', [
+            'title'       => 'Cơ sở kiến thức (Knowledge Base)',
+            'entries'     => $entries,
+            'categories'  => $this->knowledgeModel->getCategories(),
+            'currentPage' => $page,
+            'totalPages'  => ceil($total / $perPage),
+            'total'       => $total,
+        ]);
+    }
+
+    public function knowledgeCreate(): string
+    {
+        $this->requireAuth();
+        return view('admin/knowledge_form', [
+            'title'  => 'Thêm kiến thức mới',
+            'entry'  => null,
+        ]);
+    }
+
+    public function knowledgeStore(): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $now = date('Y-m-d H:i:s');
+        $this->knowledgeModel->insert([
+            'title'           => $this->request->getPost('title'),
+            'category'        => $this->request->getPost('category') ?: 'general',
+            'source_document' => $this->request->getPost('source_document'),
+            'content'         => $this->request->getPost('content'),
+            'keywords'        => $this->request->getPost('keywords'),
+            'sort_order'      => (int) ($this->request->getPost('sort_order') ?? 0),
+            'is_active'       => $this->request->getPost('is_active') ? 1 : 0,
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
+
+        return redirect()->to('/admin/knowledge')
+                         ->with('success', 'Đã thêm mục kiến thức mới!');
+    }
+
+    public function knowledgeEdit(int $id): string
+    {
+        $this->requireAuth();
+
+        $entry = $this->knowledgeModel->find($id);
+        if (!$entry) {
+            return redirect()->to('/admin/knowledge')
+                             ->with('error', 'Không tìm thấy mục kiến thức!');
+        }
+
+        return view('admin/knowledge_form', [
+            'title' => 'Chỉnh sửa kiến thức',
+            'entry' => $entry,
+        ]);
+    }
+
+    public function knowledgeUpdate(int $id): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $this->knowledgeModel->update($id, [
+            'title'           => $this->request->getPost('title'),
+            'category'        => $this->request->getPost('category') ?: 'general',
+            'source_document' => $this->request->getPost('source_document'),
+            'content'         => $this->request->getPost('content'),
+            'keywords'        => $this->request->getPost('keywords'),
+            'sort_order'      => (int) ($this->request->getPost('sort_order') ?? 0),
+            'is_active'       => $this->request->getPost('is_active') ? 1 : 0,
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ]);
+
+        return redirect()->to('/admin/knowledge')
+                         ->with('success', 'Đã cập nhật mục kiến thức!');
+    }
+
+    public function knowledgeDelete(int $id): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $this->knowledgeModel->delete($id);
+        return $this->jsonResponse(['status' => 'ok']);
+    }
+
+    public function knowledgeToggle(int $id): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $entry = $this->knowledgeModel->find($id);
+        if (!$entry) {
+            return $this->jsonResponse(['error' => 'Not found'], 404);
+        }
+
+        $newStatus = $entry['is_active'] ? 0 : 1;
+        $this->knowledgeModel->update($id, ['is_active' => $newStatus]);
+
+        return $this->jsonResponse(['status' => 'ok', 'is_active' => $newStatus]);
+    }
+
+    /**
+     * Import du lieu tu file Excel upload len
+     */
+    public function knowledgeImport(): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $file = $this->request->getFile('excel_file');
+
+        if (!$file || !$file->isValid()) {
+            return redirect()->to('/admin/knowledge')
+                             ->with('error', 'Vui lòng chọn file Excel hợp lệ!');
+        }
+
+        if (!in_array($file->getClientMimeType(), [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+            'application/octet-stream',
+        ])) {
+            return redirect()->to('/admin/knowledge')
+                             ->with('error', 'Chỉ hỗ trợ file .xlsx hoặc .xls!');
+        }
+
+        $savedPath = $file->store('uploads/excel', $file->getRandomName());
+        $fullPath  = WRITEPATH . $savedPath;
+
+        try {
+            $importer = new \App\Libraries\ExcelKnowledgeImporter();
+            $count    = $importer->import($fullPath);
+
+            return redirect()->to('/admin/knowledge')
+                             ->with('success', "Đã import $count mục kiến thức từ file Excel!");
+        } catch (\Throwable $e) {
+            log_message('error', '[Admin] Excel import error: ' . $e->getMessage());
+            return redirect()->to('/admin/knowledge')
+                             ->with('error', 'Lỗi import: ' . $e->getMessage());
         }
     }
 
