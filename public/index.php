@@ -41,6 +41,23 @@ foreach (['array', 'url', 'form'] as $_h) {
 }
 unset($_h, $f);
 
+// Add system/Config as fallback ONLY for classes not already in app/Config
+// Uses a custom autoloader that checks app/Config first to avoid conflicts
+spl_autoload_register(function (string $class) {
+    if (strncmp($class, 'Config\\', 7) !== 0) {
+        return;
+    }
+    $name = substr($class, 7);
+    $appFile = APPPATH . 'Config/' . $name . '.php';
+    if (file_exists($appFile)) {
+        return; // already handled by Composer PSR-4
+    }
+    $sysFile = SYSTEMPATH . 'Config/' . $name . '.php';
+    if (file_exists($sysFile)) {
+        require_once $sysFile;
+    }
+}, true, false);
+
 $app = \Config\Services::codeigniter();
 $app->initialize();
 $context = is_cli() ? 'php-cli' : 'web';
