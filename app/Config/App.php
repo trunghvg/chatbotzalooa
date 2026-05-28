@@ -6,8 +6,8 @@ use CodeIgniter\Config\BaseConfig;
 
 class App extends BaseConfig
 {
-    // Base URL — reads APP_URL env var, falls back to auto-detect
-    public string $baseURL = '';
+    // Base URL — set via APP_URL env var or auto-detected from request
+    public string $baseURL = 'http://localhost:8080/';
     public array $allowedHostnames = [];
     public string $indexPage = '';
     public string $uriProtocol = 'REQUEST_URI';
@@ -52,4 +52,17 @@ class App extends BaseConfig
 
     // Content Security Policy
     public bool $CSPEnabled = false;
+
+    public function __construct()
+    {
+        // APP_URL env var takes priority (set this on Railway)
+        $appUrl = getenv('APP_URL');
+        if ($appUrl) {
+            $this->baseURL = rtrim($appUrl, '/') . '/';
+        } elseif (!empty($_SERVER['HTTP_HOST'])) {
+            $scheme        = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $this->baseURL = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/';
+        }
+        parent::__construct();
+    }
 }
