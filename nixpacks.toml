@@ -1,0 +1,27 @@
+[phases.setup]
+nixPkgs = [
+  "php83",
+  "php83Extensions.curl",
+  "php83Extensions.mbstring",
+  "php83Extensions.mysqli",
+  "php83Extensions.pdo",
+  "php83Extensions.pdo_mysql",
+  "php83Extensions.xml",
+  "php83Extensions.zip",
+  "php83Extensions.gd",
+  "php83Extensions.tokenizer",
+  "php83Extensions.openssl",
+  "composer"
+]
+
+[phases.install]
+cmds = ["composer install --no-dev --optimize-autoloader"]
+
+[phases.build]
+cmds = [
+  "mkdir -p writable/logs writable/cache writable/session writable/uploads",
+  "chmod -R 777 writable/"
+]
+
+[start]
+cmd = "php -S 0.0.0.0:$PORT -t public public/index.php"
