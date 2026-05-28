@@ -18,6 +18,8 @@ if (PHP_SAPI === 'cli') {
  * Set the current directory correctly for CLI usage
  * ---------------------------------------------------------------
  */
+define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
+
 chdir(dirname(__DIR__));
 
 /*
