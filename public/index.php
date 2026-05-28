@@ -2,40 +2,38 @@
 
 declare(strict_types=1);
 
-/**
- * CodeIgniter bootstrap file.
- *
- * This file routes all requests through the CodeIgniter front controller.
+/*
+ * ---------------------------------------------------------------
+ * CHECK PHP VERSION
+ * ---------------------------------------------------------------
  */
+$minPhpVersion = '8.1';
+if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
+    $message = sprintf(
+        'Your PHP version must be %s or higher to run CodeIgniter. Current version: %s',
+        $minPhpVersion,
+        PHP_VERSION
+    );
 
-// Deny direct access to this script from the CLI
-if (PHP_SAPI === 'cli') {
-    exit('No CLI access allowed.');
+    exit($message);
+}
+
+// Path to the front controller (this file)
+define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
+
+// Ensure the current directory is pointing to the front controller's directory
+if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
+    chdir(FCPATH);
 }
 
 /*
  * ---------------------------------------------------------------
- * Set the current directory correctly for CLI usage
- * ---------------------------------------------------------------
- */
-define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
-
-chdir(dirname(__DIR__));
-
-/*
- * ---------------------------------------------------------------
- * BOOTSTRAP THE APPLICATION
+ * BOOTSTRAP THE APPLICATION (CI4.5+ approach)
  * ---------------------------------------------------------------
  */
 require FCPATH . '../vendor/autoload.php';
-require FCPATH . '../app/Config/Paths.php';
 
-// ^^^ NOTHING SHOULD APPEAR BEFORE THIS LINE ^^^
-
-$paths = new Config\Paths();
-require $paths->systemDirectory . '/bootstrap.php';
-
-$app = Config\Services::codeigniter();
+$app = \Config\Services::codeigniter();
 $app->initialize();
 $context = is_cli() ? 'php-cli' : 'web';
 $app->setContext($context);
