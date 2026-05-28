@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script chay khi Railway khoi dong container
 
-set -e
+set +e  # don't exit on error — migration failure should not crash the app
 
 echo "=== ZaloOA Bot - Starting ==="
 

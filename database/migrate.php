@@ -18,7 +18,8 @@ if (getenv('MYSQLHOST')) {
     $pass = (string) getenv('DB_PASS');
     $db   = getenv('DB_NAME') ?: 'railway';
 } else {
-    $url = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
+    // Try public URL first (works outside Railway private network too)
+    $url = getenv('MYSQL_PUBLIC_URL') ?: getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
     if (!$url) {
         echo "[migrate] No DB env vars found — skipping.\n";
         exit(0);
@@ -44,7 +45,8 @@ try {
     echo "[migrate] Connected to $db@$host\n";
 } catch (Exception $e) {
     echo "[migrate] DB connection failed: " . $e->getMessage() . "\n";
-    exit(1);
+    echo "[migrate] App will start anyway — run migration manually if needed.\n";
+    exit(0); // don't crash the container
 }
 
 $statements = [

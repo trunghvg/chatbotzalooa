@@ -52,7 +52,8 @@ class Database extends Config
             $database = getenv('DB_NAME') ?: 'railway';
         } else {
             // Fallback: parse MYSQL_URL / DATABASE_URL
-            $url      = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
+            // MYSQL_PUBLIC_URL uses Railway proxy — accessible even when private network fails
+            $url      = getenv('MYSQL_PUBLIC_URL') ?: getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
             // Normalize scheme: _mysql:// or mysqli:// → mysql://
             $url      = $url ? preg_replace('#^[^/]*mysql[^/]*://#i', 'mysql://', $url) : '';
             $parsed   = $url ? parse_url($url) : [];
