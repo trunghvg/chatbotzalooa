@@ -29,16 +29,19 @@ class ZaloAuth extends BaseController
     {
         $this->requireAuth();
 
-        $appId       = env('ZALO_APP_ID', '');
-        $redirectUri = base_url('zalo/callback');
+        $appId         = env('ZALO_APP_ID', '');
+        $redirectUri   = base_url('zalo/callback');
         $codeChallenge = $this->generateCodeChallenge();
+        $state         = bin2hex(random_bytes(16));
 
         session()->set('zalo_code_verifier', $codeChallenge['verifier']);
+        session()->set('zalo_oauth_state', $state);
 
         $params = http_build_query([
             'app_id'        => $appId,
             'redirect_uri'  => $redirectUri,
             'code_challenge'=> $codeChallenge['challenge'],
+            'state'         => $state,
         ]);
 
         return redirect()->to(self::OAUTH_BASE . '/permission?' . $params);
