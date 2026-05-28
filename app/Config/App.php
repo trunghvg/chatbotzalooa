@@ -11,6 +11,7 @@ class App extends BaseConfig
     public array $allowedHostnames = [];
     public string $indexPage = '';
     public string $uriProtocol = 'REQUEST_URI';
+    public string $permittedURIChars = 'a-z 0-9~%.:_\-@';
 
     // Locale
     public string $defaultLocale = 'vi';
