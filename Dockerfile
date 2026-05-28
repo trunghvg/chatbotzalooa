@@ -1,7 +1,7 @@
-FROM php:8.3-cli
+FROM php:8.3-fpm
 
-# Cai dat cac thu vien he thong can thiet
 RUN apt-get update && apt-get install -y \
+    nginx \
     curl \
     git \
     unzip \
@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libcurl4-openssl-dev \
     libicu-dev \
+    gettext-base \
     && docker-php-ext-install \
         mysqli \
         pdo \
@@ -22,21 +23,22 @@ RUN apt-get update && apt-get install -y \
         intl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Cai Composer tu image chinh thuc
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy source code
 COPY . .
 
-# Cai PHP dependencies
 ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# Tao thu muc writable
 RUN mkdir -p writable/logs writable/cache writable/session writable/uploads \
     && chmod -R 777 writable/
+
+# nginx config
+COPY nginx.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
+    && rm -f /etc/nginx/sites-enabled/default.bak
 
 EXPOSE 8080
 

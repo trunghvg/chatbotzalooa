@@ -31,13 +31,18 @@ class ClaudeAI
         $this->messageModel   = new MessageModel();
         $this->knowledgeModel = new KnowledgeModel();
 
-        $this->apiKey    = env('CLAUDE_API_KEY', '');
-        $this->model     = env('CLAUDE_MODEL', 'claude-opus-4-7');
-        $this->maxTokens = (int) env('CLAUDE_MAX_TOKENS', 2048);
+        $this->apiKey       = env('CLAUDE_API_KEY', '');
+        $this->model        = env('CLAUDE_MODEL', 'claude-opus-4-7');
+        $this->maxTokens    = (int) env('CLAUDE_MAX_TOKENS', 2048);
+        $this->systemPrompt = ''; // loaded lazily on first chat() call
+    }
 
-        // Lay system prompt tu DB (co the chinh sua qua admin)
-        $this->systemPrompt = $this->settingModel->get('claude_system_prompt')
-            ?? $this->getDefaultSystemPrompt();
+    private function ensureSystemPromptLoaded(): void
+    {
+        if ($this->systemPrompt === '') {
+            $this->systemPrompt = $this->settingModel->get('claude_system_prompt')
+                ?? $this->getDefaultSystemPrompt();
+        }
     }
 
     /**
@@ -118,6 +123,7 @@ class ClaudeAI
      */
     private function buildSystemPromptWithKnowledge(string $userMessage): string
     {
+        $this->ensureSystemPromptLoaded();
         $basePrompt = $this->systemPrompt;
 
         try {
@@ -225,6 +231,7 @@ PROMPT;
 
     public function getSystemPrompt(): string
     {
+        $this->ensureSystemPromptLoaded();
         return $this->systemPrompt;
     }
 }

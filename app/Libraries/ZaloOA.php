@@ -17,8 +17,9 @@ class ZaloOA
     private string $appId;
     private string $appSecret;
     private string $oaId;
-    private string $accessToken;
-    private string $refreshToken;
+    private string $accessToken  = '';
+    private string $refreshToken = '';
+    private bool   $tokensLoaded = false;
 
     private SettingModel $settingModel;
 
@@ -26,15 +27,22 @@ class ZaloOA
     {
         $this->settingModel = new SettingModel();
 
-        $this->appId        = env('ZALO_APP_ID', '');
-        $this->appSecret    = env('ZALO_APP_SECRET', '');
-        $this->oaId         = env('ZALO_OA_ID', '');
+        $this->appId     = env('ZALO_APP_ID', '');
+        $this->appSecret = env('ZALO_APP_SECRET', '');
+        $this->oaId      = env('ZALO_OA_ID', '');
+        // Tokens are loaded lazily on first API call to avoid DB query on every request
+    }
 
-        // Uu tien lay token tu DB (da refresh), sau do fallback ve .env
+    private function ensureTokensLoaded(): void
+    {
+        if ($this->tokensLoaded) {
+            return;
+        }
         $this->accessToken  = $this->settingModel->get('zalo_access_token')
                               ?? env('ZALO_ACCESS_TOKEN', '');
         $this->refreshToken = $this->settingModel->get('zalo_refresh_token')
                               ?? env('ZALO_REFRESH_TOKEN', '');
+        $this->tokensLoaded = true;
     }
 
     // ----------------------------------------------------------------
@@ -123,6 +131,7 @@ class ZaloOA
      */
     public function refreshAccessToken(): array
     {
+        $this->ensureTokensLoaded();
         $url  = self::OAUTH_BASE . '/oa/access_token';
         $data = [
             'refresh_token' => $this->refreshToken,
@@ -190,6 +199,7 @@ class ZaloOA
 
     private function get(string $endpoint, array $params = []): array
     {
+        $this->ensureTokensLoaded();
         $url = self::API_BASE . $endpoint;
         if ($params) {
             $url .= '?' . http_build_query($params);
@@ -231,6 +241,7 @@ class ZaloOA
 
     private function request(string $method, string $endpoint, array $data = []): array
     {
+        $this->ensureTokensLoaded();
         $url = self::API_BASE . $endpoint;
 
         $ch = curl_init($url);
@@ -275,6 +286,7 @@ class ZaloOA
 
     public function getAccessToken(): string
     {
+        $this->ensureTokensLoaded();
         return $this->accessToken;
     }
 }
