@@ -23,9 +23,10 @@ if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
 define('ROOTPATH',   realpath(FCPATH . '..') . DIRECTORY_SEPARATOR);
 define('APPPATH',    ROOTPATH . 'app' . DIRECTORY_SEPARATOR);
 define('SYSTEMPATH', ROOTPATH . 'vendor' . DIRECTORY_SEPARATOR . 'codeigniter4' . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR);
-define('WRITEPATH',  ROOTPATH . 'writable' . DIRECTORY_SEPARATOR);
-define('TESTPATH',   ROOTPATH . 'tests' . DIRECTORY_SEPARATOR);
-define('VIEWPATH',   APPPATH . 'Views' . DIRECTORY_SEPARATOR);
+define('WRITEPATH',     ROOTPATH . 'writable' . DIRECTORY_SEPARATOR);
+define('TESTPATH',      ROOTPATH . 'tests' . DIRECTORY_SEPARATOR);
+define('VIEWPATH',      APPPATH . 'Views' . DIRECTORY_SEPARATOR);
+define('COMPOSER_PATH', ROOTPATH . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
 
 require FCPATH . '../vendor/autoload.php';
 require SYSTEMPATH . 'Common.php';
