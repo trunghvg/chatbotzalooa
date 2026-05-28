@@ -11,7 +11,7 @@ use Psr\Log\LoggerInterface;
 
 abstract class BaseController extends Controller
 {
-    protected IncomingRequest|CLIRequest $request;
+    protected $request;
 
     protected $helpers = ['url', 'form', 'html', 'text'];
 
