@@ -120,7 +120,7 @@ class Admin extends BaseController
         foreach ($keys as $key) {
             $value = $this->request->getPost($key);
             if ($value !== null) {
-                $this->settingModel->set($key, $value);
+                $this->settingModel->saveSetting($key, $value);
             }
         }
 
@@ -146,7 +146,7 @@ class Admin extends BaseController
         $this->requireAuth();
 
         $prompt = $this->request->getPost('system_prompt');
-        $this->settingModel->set('claude_system_prompt', $prompt,
+        $this->settingModel->saveSetting('claude_system_prompt', $prompt,
             'System prompt cho Claude AI');
 
         return redirect()->to('/admin/prompt')

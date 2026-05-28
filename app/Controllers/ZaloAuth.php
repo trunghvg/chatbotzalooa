@@ -74,11 +74,11 @@ class ZaloAuth extends BaseController
         $result       = $this->exchangeCodeForToken($code, $codeVerifier);
 
         if (isset($result['access_token'])) {
-            $this->settingModel->set('zalo_access_token', $result['access_token']);
-            $this->settingModel->set('zalo_refresh_token', $result['refresh_token'] ?? '');
-            $this->settingModel->set('zalo_token_expires_at',
+            $this->settingModel->saveSetting('zalo_access_token', $result['access_token']);
+            $this->settingModel->saveSetting('zalo_refresh_token', $result['refresh_token'] ?? '');
+            $this->settingModel->saveSetting('zalo_token_expires_at',
                 date('Y-m-d H:i:s', time() + ($result['expires_in'] ?? 3600)));
-            $this->settingModel->set('zalo_oa_id', $oaId ?? env('ZALO_OA_ID', ''));
+            $this->settingModel->saveSetting('zalo_oa_id', $oaId ?? env('ZALO_OA_ID', ''));
 
             return view('admin/oauth_result', [
                 'title'        => 'Xác thực Zalo',

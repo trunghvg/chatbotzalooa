@@ -36,7 +36,7 @@ class SettingModel extends Model
     /**
      * Luu gia tri cai dat
      */
-    public function set(string $key, mixed $value, string $description = ''): bool
+    public function saveSetting(string $key, mixed $value, string $description = ''): bool
     {
         self::$cache[$key] = $value;
 
@@ -76,7 +76,7 @@ class SettingModel extends Model
     public function setMany(array $data): void
     {
         foreach ($data as $key => $value) {
-            $this->set($key, $value);
+            $this->saveSetting($key, $value);
         }
     }
 

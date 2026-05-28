@@ -157,9 +157,9 @@ class ZaloOA
             $this->refreshToken = $result['refresh_token'] ?? $this->refreshToken;
 
             // Luu vao DB de su dung sau
-            $this->settingModel->set('zalo_access_token', $this->accessToken);
-            $this->settingModel->set('zalo_refresh_token', $this->refreshToken);
-            $this->settingModel->set('zalo_token_expires_at',
+            $this->settingModel->saveSetting('zalo_access_token', $this->accessToken);
+            $this->settingModel->saveSetting('zalo_refresh_token', $this->refreshToken);
+            $this->settingModel->saveSetting('zalo_token_expires_at',
                 date('Y-m-d H:i:s', time() + ($result['expires_in'] ?? 3600)));
 
             log_message('info', '[ZaloOA] Access token refreshed successfully.');
