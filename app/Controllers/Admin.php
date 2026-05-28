@@ -8,6 +8,7 @@ use App\Models\ConversationModel;
 use App\Models\KnowledgeModel;
 use App\Models\MessageModel;
 use App\Models\SettingModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class Admin extends BaseController
 {

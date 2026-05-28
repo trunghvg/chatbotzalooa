@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\SettingModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 /**
  * Xu ly Zalo OAuth 2.0 de lay Access Token va Refresh Token
