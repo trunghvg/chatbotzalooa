@@ -37,22 +37,21 @@ class Database extends Config
     {
         parent::__construct();
 
-        // Priority 1: individual Railway vars (immune to parse_url special-char bugs)
-        if (getenv('MYSQLHOST') !== false) {
+        // Priority 1: individual Railway vars (truthy check skips empty strings)
+        if (getenv('MYSQLHOST')) {
             $hostname = getenv('MYSQLHOST');
             $port     = (int) (getenv('MYSQLPORT')     ?: 3306);
             $username = getenv('MYSQLUSER')     ?: 'root';
-            $password = getenv('MYSQLPASSWORD') ?: '';
+            $password = (string) getenv('MYSQLPASSWORD');
             $database = getenv('MYSQLDATABASE') ?: 'railway';
-        } elseif (getenv('DB_HOST') !== false) {
-            // Priority 2: generic DB_* vars
+        } elseif (getenv('DB_HOST')) {
             $hostname = getenv('DB_HOST');
             $port     = (int) (getenv('DB_PORT') ?: 3306);
             $username = getenv('DB_USER') ?: 'root';
-            $password = getenv('DB_PASS') ?: '';
+            $password = (string) getenv('DB_PASS');
             $database = getenv('DB_NAME') ?: 'railway';
         } else {
-            // Priority 3: parse MYSQL_URL / DATABASE_URL (may fail on special chars)
+            // Fallback: parse MYSQL_URL / DATABASE_URL
             $url      = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
             $parsed   = $url ? parse_url($url) : [];
             $hostname = $parsed['host'] ?? '127.0.0.1';

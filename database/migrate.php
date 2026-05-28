@@ -4,18 +4,18 @@
  * Uses IF NOT EXISTS so it is safe to run repeatedly.
  */
 
-// Priority 1: individual Railway vars
-if (getenv('MYSQLHOST') !== false) {
+// Priority 1: individual Railway vars (truthy skips empty strings)
+if (getenv('MYSQLHOST')) {
     $host = getenv('MYSQLHOST');
     $port = (int) (getenv('MYSQLPORT') ?: 3306);
     $user = getenv('MYSQLUSER') ?: 'root';
-    $pass = getenv('MYSQLPASSWORD') ?: '';
+    $pass = (string) getenv('MYSQLPASSWORD');
     $db   = getenv('MYSQLDATABASE') ?: 'railway';
-} elseif (getenv('DB_HOST') !== false) {
+} elseif (getenv('DB_HOST')) {
     $host = getenv('DB_HOST');
     $port = (int) (getenv('DB_PORT') ?: 3306);
     $user = getenv('DB_USER') ?: 'root';
-    $pass = getenv('DB_PASS') ?: '';
+    $pass = (string) getenv('DB_PASS');
     $db   = getenv('DB_NAME') ?: 'railway';
 } else {
     $url = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
