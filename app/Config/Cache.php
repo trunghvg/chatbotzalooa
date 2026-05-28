@@ -10,6 +10,7 @@ class Cache extends BaseConfig
     public string $backupHandler = 'dummy';
     public int $ttl = 60;
     public string $prefix = '';
+    public array|bool $cacheQueryString = false;
 
     public array $validHandlers = [
         'dummy'     => \CodeIgniter\Cache\Handlers\DummyHandler::class,
