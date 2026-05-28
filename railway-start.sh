@@ -9,14 +9,9 @@ echo "=== ZaloOA Bot - Starting ==="
 mkdir -p writable/logs writable/cache writable/session writable/uploads
 chmod -R 777 writable/
 
-# Chay migration (tu dong tao bang)
-echo "Running migrations..."
-php spark migrate --all -n 2>/dev/null || echo "Migration warning (may already exist)"
-
-# Chay seeder lan dau neu DB trong
-echo "Seeding default data..."
-php spark db:seed DefaultSettings 2>/dev/null || echo "Seeder skipped (already seeded)"
-php spark db:seed KnowledgeBaseSeeder 2>/dev/null || echo "KB Seeder skipped"
+# Tao bang DB tu dong (IF NOT EXISTS - an toan khi chay lai nhieu lan)
+echo "Running database migration..."
+php database/migrate.php
 
 echo "=== Starting PHP server on port $PORT ==="
 exec php -S 0.0.0.0:$PORT -t public public/index.php
