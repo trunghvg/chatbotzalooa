@@ -32,6 +32,15 @@ if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
 require COMPOSER_PATH;
 require SYSTEMPATH . 'Common.php';
 
+// Load helpers that CI4 internals (Session, etc.) require at runtime
+foreach (['array', 'url', 'form'] as $_h) {
+    $f = SYSTEMPATH . 'Helpers/' . $_h . '_helper.php';
+    if (file_exists($f)) {
+        require_once $f;
+    }
+}
+unset($_h, $f);
+
 $app = \Config\Services::codeigniter();
 $app->initialize();
 $context = is_cli() ? 'php-cli' : 'web';
