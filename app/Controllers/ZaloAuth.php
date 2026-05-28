@@ -100,33 +100,43 @@ class ZaloAuth extends BaseController
      */
     private function exchangeCodeForToken(string $code): array
     {
+        $appId      = env('ZALO_APP_ID', '');
+        $appSecret  = env('ZALO_APP_SECRET', '');
+        $redirectUri = base_url('zalo/callback');
+
         $url  = self::OAUTH_BASE . '/oa/access_token';
-        $data = http_build_query([
-            'app_id'     => env('ZALO_APP_ID', ''),
-            'code'       => $code,
-            'grant_type' => 'authorization_code',
+        $body = http_build_query([
+            'app_id'       => $appId,
+            'code'         => $code,
+            'grant_type'   => 'authorization_code',
+            'redirect_uri' => $redirectUri,
         ]);
+
+        log_message('info', "[ZaloAuth] Token exchange → app_id=$appId redirect_uri=$redirectUri code=" . substr($code, 0, 10) . '...');
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $data,
+            CURLOPT_POSTFIELDS     => $body,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/x-www-form-urlencoded',
-                'secret_key: ' . env('ZALO_APP_SECRET', ''),
+                'secret_key: ' . $appSecret,
             ],
         ]);
 
         $response = curl_exec($ch);
         $curlErr  = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        log_message('info', "[ZaloAuth] Token exchange response HTTP $httpCode: $response");
+
         if ($curlErr) {
-            return ['error' => -1, 'error_description' => 'cURL error: ' . $curlErr];
+            return ['error' => -1, 'error_description' => 'cURL: ' . $curlErr];
         }
 
-        return json_decode($response, true) ?? ['error' => -1, 'error_description' => 'Empty response'];
+        return json_decode($response, true) ?? ['error' => -1, 'error_description' => 'Empty: ' . $response];
     }
 }
