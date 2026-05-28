@@ -10,8 +10,7 @@ nixPkgs = [
   "php83Extensions.zip",
   "php83Extensions.gd",
   "php83Extensions.tokenizer",
-  "php83Extensions.openssl",
-  "composer"
+  "php83Extensions.openssl"
 ]
 
 [phases.install]
@@ -24,4 +23,4 @@ cmds = [
 ]
 
 [start]
-cmd = "php -S 0.0.0.0:$PORT -t public public/index.php"
+cmd = "bash railway-start.sh"
