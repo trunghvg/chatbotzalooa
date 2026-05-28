@@ -56,7 +56,7 @@ class App extends BaseConfig
     public function __construct()
     {
         // APP_URL env var takes priority (set this on Railway)
-        $appUrl = getenv('APP_URL');
+        $appUrl = trim((string) getenv('APP_URL'));
         if ($appUrl) {
             $this->baseURL = rtrim($appUrl, '/') . '/';
         } elseif (!empty($_SERVER['HTTP_HOST'])) {
