@@ -23,6 +23,8 @@ if (getenv('MYSQLHOST')) {
         echo "[migrate] No DB env vars found — skipping.\n";
         exit(0);
     }
+    // Normalize scheme: _mysql:// or mysqli:// → mysql://
+    $url  = preg_replace('#^[^/]*mysql[^/]*://#i', 'mysql://', $url);
     $p    = parse_url($url);
     $host = $p['host'] ?? '127.0.0.1';
     $port = (int) ($p['port'] ?? 3306);
