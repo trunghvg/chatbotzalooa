@@ -65,36 +65,48 @@ class Webhook extends BaseController
         $startTime = microtime(true);
         $rawBody   = $this->request->getBody();
 
-        // 1. Xac minh chu ky Zalo (chi log warning, khong block - de Zalo co the dang ky webhook)
-        $signature = $this->request->getHeaderLine('X-Zevent-Signature')
-                  ?: $this->request->getGet('mac');
+        // Respond 200 OK to Zalo immediately so it never times out
+        http_response_code(200);
+        header('Content-Type: application/json');
+        echo '{"status":"ok"}';
 
-        if ($signature && !$this->zalo->verifyWebhook($rawBody, $signature)) {
-            log_message('warning', '[Webhook] Signature mismatch — check ZALO_APP_SECRET env var');
-            // Do not return 403: Zalo registration test must receive 200
+        // With PHP-FPM: flush response to client now, keep processing in background
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
         }
 
-        // 2. Parse JSON payload
-        $payload = json_decode($rawBody, true);
-        if (!$payload) {
-            log_message('info', '[Webhook] Non-JSON POST body (registration ping?): ' . substr($rawBody, 0, 200));
-            return $this->jsonResponse(['status' => 'ok'], 200);
+        // --- Everything below runs after Zalo already received 200 ---
+        try {
+            $signature = $this->request->getHeaderLine('X-Zevent-Signature')
+                      ?: $this->request->getGet('mac');
+            if ($signature && !$this->zalo->verifyWebhook($rawBody, $signature)) {
+                log_message('warning', '[Webhook] Signature mismatch — check ZALO_APP_SECRET');
+            }
+
+            $payload = json_decode($rawBody, true);
+            if (!$payload) {
+                log_message('info', '[Webhook] Non-JSON POST: ' . substr($rawBody, 0, 200));
+                return $this->response->setStatusCode(200);
+            }
+
+            log_message('info', '[Webhook] Event: ' . ($payload['event_name'] ?? 'unknown'));
+
+            $eventName = $payload['event_name'] ?? '';
+
+            match ($eventName) {
+                'user_send_text'  => $this->handleTextMessage($payload, $startTime),
+                'user_send_image' => $this->handleImageMessage($payload),
+                'user_send_sticker', 'user_send_audio', 'user_send_video',
+                'user_send_file'  => $this->handleMediaMessage($payload, $eventName),
+                'follow'          => $this->handleFollow($payload),
+                'unfollow'        => $this->handleUnfollow($payload),
+                default           => null,
+            };
+        } catch (\Throwable $e) {
+            log_message('error', '[Webhook] Processing error: ' . $e->getMessage());
         }
 
-        log_message('info', '[Webhook] Received: ' . json_encode($payload));
-
-        // 3. Xu ly theo loai su kien
-        $eventName = $payload['event_name'] ?? '';
-
-        return match ($eventName) {
-            'user_send_text'  => $this->handleTextMessage($payload, $startTime),
-            'user_send_image' => $this->handleImageMessage($payload),
-            'user_send_sticker', 'user_send_audio', 'user_send_video',
-            'user_send_file'  => $this->handleMediaMessage($payload, $eventName),
-            'follow'          => $this->handleFollow($payload),
-            'unfollow'        => $this->handleUnfollow($payload),
-            default           => $this->jsonResponse(['status' => 'ignored', 'event' => $eventName]),
-        };
+        return $this->response->setStatusCode(200);
     }
 
     // ----------------------------------------------------------------
