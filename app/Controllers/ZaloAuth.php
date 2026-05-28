@@ -16,37 +16,39 @@ class ZaloAuth extends BaseController
         $this->settingModel = new SettingModel();
     }
 
+    /**
+     * Buoc 1: Redirect den Zalo de cap quyen OA
+     * Khong dung PKCE (Zalo OA API khong ho tro code_challenge)
+     */
     public function authorize(): ResponseInterface
     {
         $this->requireAuth();
 
-        $appId         = env('ZALO_APP_ID', '');
-        $redirectUri   = base_url('zalo/callback');
-        $codeChallenge = $this->generateCodeChallenge();
+        $appId       = env('ZALO_APP_ID', '');
+        $redirectUri = base_url('zalo/callback');
+        $state       = bin2hex(random_bytes(16));
 
-        // Encode verifier in state (no session needed — survives container restarts)
-        $state = rtrim(strtr(base64_encode(json_encode([
-            'v' => $codeChallenge['verifier'],
-            'r' => bin2hex(random_bytes(8)),
-        ])), '+/', '-_'), '=');
+        // Luu state vao session de xac minh CSRF khi callback
+        session()->set('zalo_oauth_state', $state);
 
         $params = http_build_query([
-            'app_id'         => $appId,
-            'redirect_uri'   => $redirectUri,
-            'code_challenge' => $codeChallenge['challenge'],
-            'state'          => $state,
+            'app_id'       => $appId,
+            'redirect_uri' => $redirectUri,
+            'state'        => $state,
         ]);
 
         return redirect()->to(self::OAUTH_BASE . '/permission?' . $params);
     }
 
+    /**
+     * Buoc 2: Nhan code tu Zalo, doi lay OA Access Token
+     */
     public function callback(): string
     {
         $this->requireAuth();
 
         $code  = $this->request->getGet('code');
         $oaId  = $this->request->getGet('oa_id');
-        $state = $this->request->getGet('state');
         $error = $this->request->getGet('error');
 
         if ($error) {
@@ -65,14 +67,7 @@ class ZaloAuth extends BaseController
             ]);
         }
 
-        // Recover code_verifier from state parameter
-        $codeVerifier = '';
-        if ($state) {
-            $decoded = json_decode(base64_decode(strtr($state, '-_', '+/')), true);
-            $codeVerifier = $decoded['v'] ?? '';
-        }
-
-        $result = $this->exchangeCodeForToken($code, $codeVerifier);
+        $result = $this->exchangeCodeForToken($code);
 
         if (isset($result['access_token'])) {
             $this->settingModel->saveSetting('zalo_access_token',    $result['access_token']);
@@ -84,7 +79,7 @@ class ZaloAuth extends BaseController
             return view('admin/oauth_result', [
                 'title'        => 'Xác thực Zalo',
                 'success'      => true,
-                'message'      => 'Lấy Access Token thành công!',
+                'message'      => 'Lấy Access Token thành công! Bot Zalo đã sẵn sàng.',
                 'access_token' => substr($result['access_token'], 0, 20) . '...',
                 'expires_in'   => $result['expires_in'] ?? 3600,
             ]);
@@ -97,28 +92,25 @@ class ZaloAuth extends BaseController
         ]);
     }
 
-    private function generateCodeChallenge(): array
-    {
-        $verifier  = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-        $challenge = rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
-        return ['verifier' => $verifier, 'challenge' => $challenge];
-    }
-
-    private function exchangeCodeForToken(string $code, string $codeVerifier): array
+    /**
+     * Doi authorization code lay OA Access Token
+     * API: POST /v4/oa/access_token
+     * Header: secret_key
+     * Body: app_id, code, grant_type
+     */
+    private function exchangeCodeForToken(string $code): array
     {
         $url  = self::OAUTH_BASE . '/oa/access_token';
-        $data = [
-            'code'          => $code,
-            'app_id'        => env('ZALO_APP_ID', ''),
-            'grant_type'    => 'authorization_code',
-            'code_verifier' => $codeVerifier,
-            'redirect_uri'  => base_url('zalo/callback'),
-        ];
+        $data = http_build_query([
+            'app_id'     => env('ZALO_APP_ID', ''),
+            'code'       => $code,
+            'grant_type' => 'authorization_code',
+        ]);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query($data),
+            CURLOPT_POSTFIELDS     => $data,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_HTTPHEADER     => [
@@ -128,8 +120,13 @@ class ZaloAuth extends BaseController
         ]);
 
         $response = curl_exec($ch);
+        $curlErr  = curl_error($ch);
         curl_close($ch);
 
-        return json_decode($response, true) ?? [];
+        if ($curlErr) {
+            return ['error' => -1, 'error_description' => 'cURL error: ' . $curlErr];
+        }
+
+        return json_decode($response, true) ?? ['error' => -1, 'error_description' => 'Empty response'];
     }
 }
