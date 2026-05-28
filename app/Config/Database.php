@@ -64,6 +64,8 @@ class Database extends Config
             $database = ltrim($parsed['path'] ?? '', '/') ?: 'railway';
         }
 
+        error_log("[DB-CONFIG] host=$hostname port=$port db=$database user=$username");
+
         $this->default = [
             'DSN'          => '',
             'hostname'     => $hostname,
