@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use CodeIgniter\HTTP\ResponseInterface;
+
 class Auth extends BaseController
 {
     public function login(): string|ResponseInterface
