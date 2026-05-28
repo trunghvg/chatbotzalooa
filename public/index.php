@@ -21,6 +21,10 @@ define('VIEWPATH',       APPPATH  . 'Views'   . DIRECTORY_SEPARATOR);
 define('COMPOSER_PATH',  ROOTPATH . 'vendor'  . DIRECTORY_SEPARATOR . 'autoload.php');
 define('APP_NAMESPACE',  'App');
 
+// Environment and CI_DEBUG must be defined before CI4 boots
+define('ENVIRONMENT', $_SERVER['CI_ENVIRONMENT'] ?? 'production');
+define('CI_DEBUG',    ENVIRONMENT !== 'production');
+
 if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
     chdir(FCPATH);
 }
