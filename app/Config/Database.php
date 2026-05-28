@@ -37,63 +37,49 @@ class Database extends Config
     {
         parent::__construct();
 
-        // Railway / Docker: parse MYSQL_URL hoac DATABASE_URL
+        // Resolve connection params from all Railway MySQL env var patterns
         $mysqlUrl = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
 
         if ($mysqlUrl) {
-            $parsed = parse_url($mysqlUrl);
-            $this->default = [
-                'DSN'          => '',
-                'hostname'     => $parsed['host'] ?? 'localhost',
-                'username'     => $parsed['user'] ?? 'root',
-                'password'     => $parsed['pass'] ?? '',
-                'database'     => ltrim($parsed['path'] ?? '/chatbotzalooa', '/'),
-                'DBDriver'     => 'MySQLi',
-                'DBPrefix'     => '',
-                'pConnect'     => false,
-                'DBDebug'      => false,
-                'charset'      => 'utf8mb4',
-                'DBCollat'     => 'utf8mb4_unicode_ci',
-                'swapPre'      => '',
-                'encrypt'      => false,
-                'compress'     => false,
-                'strictOn'     => false,
-                'failover'     => [],
-                'port'         => (int) ($parsed['port'] ?? 3306),
-                'numberNative' => false,
-                'dateFormat'   => [
-                    'date'     => 'Y-m-d',
-                    'datetime' => 'Y-m-d H:i:s',
-                    'time'     => 'H:i:s',
-                ],
-            ];
+            $parsed   = parse_url($mysqlUrl);
+            $hostname = $parsed['host'] ?? '';
+            $port     = (int) ($parsed['port'] ?? 3306);
+            $username = $parsed['user'] ?? 'root';
+            $password = $parsed['pass'] ?? '';
+            $database = ltrim($parsed['path'] ?? '', '/');
         } else {
-            // Local / .env tung bien rieng
-            $this->default = [
-                'DSN'          => '',
-                'hostname'     => getenv('DB_HOST') ?: env('database.default.hostname', '127.0.0.1'),
-                'username'     => getenv('DB_USER') ?: env('database.default.username', 'root'),
-                'password'     => getenv('DB_PASS') ?: env('database.default.password', ''),
-                'database'     => getenv('DB_NAME') ?: env('database.default.database', 'chatbotzalooa'),
-                'DBDriver'     => 'MySQLi',
-                'DBPrefix'     => '',
-                'pConnect'     => false,
-                'DBDebug'      => env('CI_ENVIRONMENT') !== 'production',
-                'charset'      => 'utf8mb4',
-                'DBCollat'     => 'utf8mb4_unicode_ci',
-                'swapPre'      => '',
-                'encrypt'      => false,
-                'compress'     => false,
-                'strictOn'     => false,
-                'failover'     => [],
-                'port'         => (int) (getenv('DB_PORT') ?: env('database.default.port', 3306)),
-                'numberNative' => false,
-                'dateFormat'   => [
-                    'date'     => 'Y-m-d',
-                    'datetime' => 'Y-m-d H:i:s',
-                    'time'     => 'H:i:s',
-                ],
-            ];
+            // Railway also exposes individual MYSQL* vars
+            $hostname = getenv('MYSQLHOST')     ?: getenv('DB_HOST') ?: '127.0.0.1';
+            $port     = (int) (getenv('MYSQLPORT')     ?: getenv('DB_PORT') ?: 3306);
+            $username = getenv('MYSQLUSER')     ?: getenv('DB_USER') ?: 'root';
+            $password = getenv('MYSQLPASSWORD') ?: getenv('DB_PASS') ?: '';
+            $database = getenv('MYSQLDATABASE') ?: getenv('DB_NAME') ?: 'railway';
         }
+
+        $this->default = [
+            'DSN'          => '',
+            'hostname'     => $hostname,
+            'username'     => $username,
+            'password'     => $password,
+            'database'     => $database,
+            'DBDriver'     => 'MySQLi',
+            'DBPrefix'     => '',
+            'pConnect'     => false,
+            'DBDebug'      => false,
+            'charset'      => 'utf8mb4',
+            'DBCollat'     => 'utf8mb4_unicode_ci',
+            'swapPre'      => '',
+            'encrypt'      => false,
+            'compress'     => false,
+            'strictOn'     => false,
+            'failover'     => [],
+            'port'         => $port,
+            'numberNative' => false,
+            'dateFormat'   => [
+                'date'     => 'Y-m-d',
+                'datetime' => 'Y-m-d H:i:s',
+                'time'     => 'H:i:s',
+            ],
+        ];
     }
 }
