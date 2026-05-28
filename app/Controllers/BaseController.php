@@ -13,7 +13,7 @@ abstract class BaseController extends Controller
 {
     protected IncomingRequest|CLIRequest $request;
 
-    protected array $helpers = ['url', 'form', 'html', 'text'];
+    protected $helpers = ['url', 'form', 'html', 'text'];
 
     public function initController(
         RequestInterface $request,
