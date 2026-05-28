@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libonig-dev \
     libcurl4-openssl-dev \
+    libicu-dev \
     && docker-php-ext-install \
         mysqli \
         pdo \
@@ -18,6 +19,7 @@ RUN apt-get update && apt-get install -y \
         gd \
         mbstring \
         opcache \
+        intl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Cai Composer tu image chinh thuc
