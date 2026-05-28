@@ -32,10 +32,6 @@ if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
 require COMPOSER_PATH;
 require SYSTEMPATH . 'Common.php';
 
-// Register system/Config as fallback so CI4.7 system configs
-// (Logger, Exceptions, Cookie, Feature, etc.) are auto-resolved
-service('autoloader')->addNamespace('Config', SYSTEMPATH . 'Config');
-
 $app = \Config\Services::codeigniter();
 $app->initialize();
 $context = is_cli() ? 'php-cli' : 'web';
