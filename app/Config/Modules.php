@@ -6,5 +6,5 @@ use CodeIgniter\Modules\Modules as BaseModules;
 
 class Modules extends BaseModules
 {
-    public bool $enabled = true;
+    public $enabled = true;
 }
