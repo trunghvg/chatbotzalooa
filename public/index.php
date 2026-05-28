@@ -2,20 +2,13 @@
 
 declare(strict_types=1);
 
-/*
- * ---------------------------------------------------------------
- * CHECK PHP VERSION
- * ---------------------------------------------------------------
- */
 $minPhpVersion = '8.1';
 if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
-    $message = sprintf(
+    exit(sprintf(
         'Your PHP version must be %s or higher to run CodeIgniter. Current version: %s',
         $minPhpVersion,
         PHP_VERSION
-    );
-
-    exit($message);
+    ));
 }
 
 // Path to the front controller (this file)
@@ -26,13 +19,16 @@ if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
     chdir(FCPATH);
 }
 
-/*
- * ---------------------------------------------------------------
- * BOOTSTRAP THE APPLICATION (CI4.5+ approach)
- * ---------------------------------------------------------------
- */
+// Define all CI4 path constants required by the framework
+define('ROOTPATH',   realpath(FCPATH . '..') . DIRECTORY_SEPARATOR);
+define('APPPATH',    ROOTPATH . 'app' . DIRECTORY_SEPARATOR);
+define('SYSTEMPATH', ROOTPATH . 'vendor' . DIRECTORY_SEPARATOR . 'codeigniter4' . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR);
+define('WRITEPATH',  ROOTPATH . 'writable' . DIRECTORY_SEPARATOR);
+define('TESTPATH',   ROOTPATH . 'tests' . DIRECTORY_SEPARATOR);
+define('VIEWPATH',   APPPATH . 'Views' . DIRECTORY_SEPARATOR);
+
 require FCPATH . '../vendor/autoload.php';
-require FCPATH . '../vendor/codeigniter4/framework/system/Common.php';
+require SYSTEMPATH . 'Common.php';
 
 $app = \Config\Services::codeigniter();
 $app->initialize();
