@@ -4,19 +4,34 @@
  * Uses IF NOT EXISTS so it is safe to run repeatedly.
  */
 
-$url = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
-
-if (!$url) {
-    echo "[migrate] No MYSQL_URL / DATABASE_URL found — skipping.\n";
-    exit(0);
+// Priority 1: individual Railway vars
+if (getenv('MYSQLHOST') !== false) {
+    $host = getenv('MYSQLHOST');
+    $port = (int) (getenv('MYSQLPORT') ?: 3306);
+    $user = getenv('MYSQLUSER') ?: 'root';
+    $pass = getenv('MYSQLPASSWORD') ?: '';
+    $db   = getenv('MYSQLDATABASE') ?: 'railway';
+} elseif (getenv('DB_HOST') !== false) {
+    $host = getenv('DB_HOST');
+    $port = (int) (getenv('DB_PORT') ?: 3306);
+    $user = getenv('DB_USER') ?: 'root';
+    $pass = getenv('DB_PASS') ?: '';
+    $db   = getenv('DB_NAME') ?: 'railway';
+} else {
+    $url = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
+    if (!$url) {
+        echo "[migrate] No DB env vars found — skipping.\n";
+        exit(0);
+    }
+    $p    = parse_url($url);
+    $host = $p['host'] ?? '127.0.0.1';
+    $port = (int) ($p['port'] ?? 3306);
+    $user = isset($p['user']) ? urldecode($p['user']) : 'root';
+    $pass = isset($p['pass']) ? urldecode($p['pass']) : '';
+    $db   = ltrim($p['path'] ?? '', '/') ?: 'railway';
 }
 
-$p = parse_url($url);
-$host = $p['host'] ?? 'localhost';
-$port = $p['port'] ?? 3306;
-$user = $p['user'] ?? 'root';
-$pass = $p['pass'] ?? '';
-$db   = ltrim($p['path'] ?? '/app', '/');
+echo "[migrate] Connecting to $host:$port db=$db user=$user\n";
 
 try {
     $pdo = new PDO(
