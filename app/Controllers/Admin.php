@@ -399,8 +399,13 @@ class Admin extends BaseController
                              ->with('error', "Định dạng .$ext không được hỗ trợ. Chấp nhận: " . implode(', ', $allowedExt));
         }
 
-        $savedPath = $file->store('uploads/docs', $file->getRandomName() . '.' . $ext);
-        $fullPath  = WRITEPATH . $savedPath;
+        $randomName = bin2hex(random_bytes(16)) . '.' . $ext;
+        $destDir    = WRITEPATH . 'uploads/docs/';
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0777, true);
+        }
+        $fullPath = $destDir . $randomName;
+        $file->move($destDir, $randomName);
         $replaceAll = (bool) $this->request->getPost('replace_all');
 
         try {
