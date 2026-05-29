@@ -81,7 +81,7 @@ class ClaudeAI
         $response = $this->callAPI('/messages', $payload);
 
         if (isset($response['content'][0]['text'])) {
-            return $response['content'][0]['text'];
+            return $this->stripMarkdown($response['content'][0]['text']);
         }
 
         if (isset($response['error'])) {
@@ -159,7 +159,7 @@ class ClaudeAI
     private function getDefaultSystemPrompt(): string
     {
         return <<<PROMPT
-Bạn là trợ lý AI của **Phường Lê Chân** (thành phố Hải Phòng).
+Bạn là trợ lý AI của Phường Lê Chân (thành phố Hải Phòng).
 Nhiệm vụ: Hỗ trợ người dân 24/7 qua Zalo về các vấn đề học tập, quy chế, thủ tục tại Phường Lê Chân.
 
 ## Vai trò
@@ -169,11 +169,12 @@ Nhiệm vụ: Hỗ trợ người dân 24/7 qua Zalo về các vấn đề học
 - Hỗ trợ thân thiện, tận tình
 
 ## Nguyên tắc trả lời
-1. **Luôn trả lời bằng tiếng Việt**, ngắn gọn, dễ hiểu
-2. Khi trả lời các vấn đề về quy chế, hãy **trích dẫn rõ số quyết định và điều khoản**
+1. Luôn trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu
+2. Khi trả lời các vấn đề về quy chế, hãy trích dẫn rõ số quyết định và điều khoản
 3. Nếu không chắc chắn → nói thật và hướng dẫn liên hệ Phường Lê Chân trực tiếp
 4. Thân thiện, dùng emoji phù hợp 😊
 5. Không bịa đặt thông tin; chỉ trả lời dựa trên kiến thức được cung cấp
+6. TUYỆT ĐỐI KHÔNG dùng dấu * hoặc ** trong câu trả lời. Không dùng markdown bold/italic. Chỉ dùng chữ thuần, emoji và xuống dòng.
 
 ## Giới hạn
 - Không tiết lộ thông tin cá nhân học viên khác
@@ -183,6 +184,20 @@ Nhiệm vụ: Hỗ trợ người dân 24/7 qua Zalo về các vấn đề học
 - Địa chỉ: Phường Lê Chân, Quận Lê Chân, TP. Hải Phòng
 - Giờ làm việc: Giờ hành chính các ngày trong tuần
 PROMPT;
+    }
+
+    /**
+     * Xoa cac ky tu markdown khoi van ban (*, **, _,  __) de hien thi sach tren Zalo
+     */
+    private function stripMarkdown(string $text): string
+    {
+        // Remove bold (**text** or __text__)
+        $text = preg_replace('/\*\*(.+?)\*\*/u', '$1', $text);
+        $text = preg_replace('/__(.+?)__/u', '$1', $text);
+        // Remove italic (*text* or _text_) — single * or _
+        $text = preg_replace('/\*(.+?)\*/u', '$1', $text);
+        $text = preg_replace('/_(.+?)_/u', '$1', $text);
+        return $text;
     }
 
     /**
