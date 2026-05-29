@@ -117,27 +117,29 @@ class DocumentImporter
         $text = mb_substr($text, 0, self::MAX_TEXT_CHARS);
 
         $prompt = <<<EOT
-Bạn là chuyên gia phân tích văn bản hành chính của Phường Lê Chân, thành phố Hải Phòng.
+Bạn là chuyên gia phân tích văn bản hành chính phục vụ hệ thống chatbot Phường Lê Chân, Hải Phòng.
 
-Hãy đọc tài liệu dưới đây và trích xuất các mục kiến thức để đưa vào hệ thống hỗ trợ người dân qua chatbot.
+Hãy đọc toàn bộ tài liệu dưới đây và trích xuất TẤT CẢ thông tin hữu ích thành các mục kiến thức riêng biệt, kể cả khi tài liệu không nhắc đến tên "Phường Lê Chân" — hệ thống sẽ sử dụng nội dung này để trả lời người dân.
 
 YÊU CẦU:
-1. Chỉ trích xuất nội dung liên quan đến hoạt động của Phường Lê Chân: đào tạo lý luận chính trị, quy chế học tập, thủ tục hành chính, tổ chức, lịch học, thông tin liên hệ
-2. Viết theo văn phong chính trị - nhà nước, trang trọng, rõ ràng
-3. TUYỆT ĐỐI không dùng ký hiệu markdown (*, **, #, ##) trong trường content
-4. Mỗi mục phải đầy đủ, có thể trả lời độc lập cho người dân khi hỏi
+1. Trích xuất TẤT CẢ nội dung có giá trị: quy chế, quy định, thủ tục, lịch học, đối tượng, điều kiện, thông tin liên hệ, văn bản pháp lý, v.v.
+2. Mỗi mục là một chủ đề độc lập, đủ để trả lời một câu hỏi cụ thể của người dân
+3. Viết theo văn phong hành chính nhà nước, trang trọng, rõ ràng
+4. TUYỆT ĐỐI không dùng ký hiệu markdown (*, **, #, ##) trong trường content
 5. Danh mục (category) chọn một trong: quy-che, lich-hoc, thu-tuc, lien-he, khoa-hoc, quy-dinh, to-chuc, hoat-dong, chung
+6. Nếu tài liệu ngắn, tạo ít nhất 1 mục với toàn bộ nội dung
+7. Tối đa 25 mục
 
 Trả về JSON array. Mỗi phần tử có các trường:
-- "title": tiêu đề ngắn gọn (tối đa 150 ký tự)
-- "category": danh mục slug
-- "content": nội dung chi tiết (không dùng markdown)
-- "keywords": các từ khóa tìm kiếm, cách nhau bằng dấu phẩy
+- "title": tiêu đề ngắn gọn mô tả nội dung (tối đa 150 ký tự)
+- "category": danh mục slug (một trong các giá trị trên)
+- "content": nội dung đầy đủ, trình bày rõ ràng (không dùng markdown)
+- "keywords": các từ khóa tìm kiếm quan trọng, cách nhau bằng dấu phẩy
 
 TÀI LIỆU:
 $text
 
-Trả về CHỈ JSON array hợp lệ, không có text giải thích trước hoặc sau.
+Trả về CHỈ JSON array hợp lệ, bắt đầu bằng [ và kết thúc bằng ]. Không có text giải thích.
 EOT;
 
         $apiKey = env('CLAUDE_API_KEY', '');
@@ -174,17 +176,26 @@ EOT;
         $result   = json_decode($response, true);
         $jsonText = $result['content'][0]['text'] ?? '';
 
-        // Lay phan JSON tu response (de phong Claude them text ngoai)
+        log_message('info', '[DocumentImporter] Claude raw (' . mb_strlen($jsonText) . ' chars): ' . mb_substr($jsonText, 0, 300));
+
+        // Lay phan JSON array tu response
         if (preg_match('/\[.*\]/su', $jsonText, $matches)) {
             $jsonText = $matches[0];
         }
 
         $entries = json_decode($jsonText, true);
-        if (!is_array($entries) || empty($entries)) {
-            log_message('error', '[DocumentImporter] Claude response: ' . mb_substr($jsonText, 0, 500));
+
+        // Neu Claude tra ve empty array, thu lai voi prompt don gian hon
+        if (is_array($entries) && empty($entries)) {
+            log_message('warning', '[DocumentImporter] Claude returned [], retrying with simpler prompt');
+            return $this->extractWithSimpleChunks($text, $sourceName);
+        }
+
+        if (!is_array($entries)) {
+            log_message('error', '[DocumentImporter] Invalid JSON from Claude: ' . mb_substr($jsonText, 0, 500));
             throw new \RuntimeException(
-                "Claude AI không trả về dữ liệu hợp lệ. "
-                . "Preview: " . mb_substr($jsonText, 0, 200)
+                "Claude AI trả về dữ liệu không đúng định dạng JSON. "
+                . "Preview: " . mb_substr($jsonText, 0, 300)
             );
         }
 
@@ -211,6 +222,92 @@ EOT;
                 'updated_at'      => $now,
             ]);
 
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Fallback: chia van ban thanh cac doan, goi Claude AI voi prompt don gian hon
+     * Su dung khi prompt chinh tra ve []
+     */
+    private function extractWithSimpleChunks(string $text, string $sourceName): int
+    {
+        $prompt = <<<EOT
+Tóm tắt và trích xuất nội dung tài liệu sau thành các mục thông tin. Trả về JSON array, mỗi phần tử gồm: title (string), category (string, ví dụ: "chung"), content (string, không dùng *, #), keywords (string).
+
+Tài liệu:
+$text
+
+Chỉ trả về JSON array.
+EOT;
+
+        $apiKey = env('CLAUDE_API_KEY', '');
+        $model  = env('CLAUDE_MODEL', 'claude-opus-4-7');
+
+        $payload = [
+            'model'      => $model,
+            'max_tokens' => 4096,
+            'system'     => 'Trả về chỉ JSON array hợp lệ.',
+            'messages'   => [['role' => 'user', 'content' => $prompt]],
+        ];
+
+        $ch = curl_init(self::API_BASE . '/messages');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 120,
+            CURLOPT_HTTPHEADER     => [
+                'x-api-key: ' . $apiKey,
+                'anthropic-version: ' . self::VERSION,
+                'content-type: application/json',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $result   = json_decode($response, true);
+        $jsonText = $result['content'][0]['text'] ?? '';
+
+        if (preg_match('/\[.*\]/su', $jsonText, $matches)) {
+            $jsonText = $matches[0];
+        }
+
+        $entries = json_decode($jsonText, true);
+
+        // Neu van fail, tao 1 entry don gian tu toan bo van ban
+        if (!is_array($entries) || empty($entries)) {
+            $shortTitle = mb_substr(pathinfo($sourceName, PATHINFO_FILENAME), 0, 150);
+            $entries = [[
+                'title'    => $shortTitle ?: 'Tài liệu nhập',
+                'category' => 'chung',
+                'content'  => mb_substr($text, 0, 3000),
+                'keywords' => '',
+            ]];
+        }
+
+        $now   = date('Y-m-d H:i:s');
+        $count = 0;
+
+        foreach ($entries as $i => $entry) {
+            $title   = trim($entry['title']   ?? '');
+            $content = trim($entry['content'] ?? '');
+            if (empty($title) || empty($content)) continue;
+
+            $this->model->insert([
+                'title'           => mb_substr($title, 0, 300),
+                'category'        => $entry['category'] ?? 'chung',
+                'source_document' => mb_substr(pathinfo($sourceName, PATHINFO_FILENAME), 0, 200),
+                'content'         => $content,
+                'keywords'        => mb_substr($entry['keywords'] ?? '', 0, 1000),
+                'is_active'       => 1,
+                'sort_order'      => ($i + 1) * 10,
+                'created_at'      => $now,
+                'updated_at'      => $now,
+            ]);
             $count++;
         }
 
