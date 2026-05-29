@@ -224,6 +224,47 @@ class Admin extends BaseController
     }
 
     /**
+     * Lay lai ten/avatar cua toan bo hoc vien tu Zalo API
+     */
+    public function refreshUserNames(): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $conversations = $this->conversationModel
+            ->where('user_name', 'Học viên')
+            ->orWhere('user_name', '')
+            ->findAll(50); // toi da 50 lan goi API mot luc
+
+        if (empty($conversations)) {
+            return $this->jsonResponse(['success' => true, 'updated' => 0, 'message' => 'Tất cả học viên đã có tên.']);
+        }
+
+        $zalo    = new ZaloOA();
+        $updated = 0;
+
+        foreach ($conversations as $conv) {
+            try {
+                $profile = $zalo->getUserProfile($conv['zalo_user_id']);
+                $data    = $profile['data'] ?? $profile;
+                $name    = trim($data['display_name'] ?? $data['name'] ?? '');
+                $avatar  = $data['avatar'] ?? '';
+
+                if ($name && $name !== 'Học viên') {
+                    $updateData = ['user_name' => $name, 'updated_at' => date('Y-m-d H:i:s')];
+                    if ($avatar) $updateData['user_avatar'] = $avatar;
+                    $this->conversationModel->update($conv['id'], $updateData);
+                    $updated++;
+                }
+            } catch (\Throwable $e) {
+                log_message('warning', '[Admin] refreshUserNames error for ' . $conv['zalo_user_id'] . ': ' . $e->getMessage());
+            }
+            usleep(200000); // 0.2s delay giua cac lan goi API
+        }
+
+        return $this->jsonResponse(['success' => true, 'updated' => $updated, 'total' => count($conversations)]);
+    }
+
+    /**
      * Tra ve tin nhan moi hon lastId cho mot cuoc hoi thoai (dung de polling)
      */
     public function apiConversationMessages(int $id): ResponseInterface

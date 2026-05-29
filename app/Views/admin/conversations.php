@@ -1,11 +1,14 @@
 <?= $this->extend('admin/layout') ?>
 <?= $this->section('content') ?>
 
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
     <div>
         <h5 class="fw-bold mb-1">Cuộc hội thoại</h5>
         <span class="text-muted small">Tổng cộng <?= number_format($total) ?> cuộc hội thoại</span>
     </div>
+    <button class="btn btn-sm btn-outline-primary" id="btnRefreshNames" onclick="refreshUserNames()">
+        <i class="bi bi-person-lines-fill me-1"></i>Làm mới tên học viên
+    </button>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -123,6 +126,28 @@ async function deleteConversation(id, btn) {
     } else {
         alert('Lỗi khi xóa!');
         btn.disabled = false;
+    }
+}
+
+async function refreshUserNames() {
+    const btn = document.getElementById('btnRefreshNames');
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lấy tên...';
+
+    try {
+        const resp = await fetch('<?= base_url('admin/api/refresh-user-names') ?>', { method: 'POST' });
+        const data = await resp.json();
+        if (data.updated > 0) {
+            btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>Đã cập nhật ${data.updated} tên`;
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            btn.innerHTML = '<i class="bi bi-person-lines-fill me-1"></i>Tất cả đã có tên';
+            setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-person-lines-fill me-1"></i>Làm mới tên học viên'; }, 3000);
+        }
+    } catch(e) {
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="bi bi-person-lines-fill me-1"></i>Làm mới tên học viên';
+        alert('Lỗi: ' + e.message);
     }
 }
 

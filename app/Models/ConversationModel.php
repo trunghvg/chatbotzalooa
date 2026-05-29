@@ -18,16 +18,22 @@ class ConversationModel extends Model
 
     /**
      * Lay hoac tao cuoc hoi thoai cho nguoi dung Zalo
+     * userProfile la response day du tu Zalo API: {"error":0,"data":{"display_name":"..."}}
      */
     public function findOrCreate(string $zaloUserId, array $userProfile = []): array
     {
+        // Zalo API tra ve data long trong truong "data"
+        $profile    = $userProfile['data'] ?? $userProfile;
+        $name       = trim($profile['display_name'] ?? $profile['name'] ?? '');
+        $avatar     = $profile['avatar'] ?? '';
+
         $conversation = $this->where('zalo_user_id', $zaloUserId)->first();
 
         if (!$conversation) {
             $id = $this->insert([
                 'zalo_user_id'    => $zaloUserId,
-                'user_name'       => $userProfile['display_name'] ?? 'Học viên',
-                'user_avatar'     => $userProfile['avatar'] ?? '',
+                'user_name'       => $name ?: 'Học viên',
+                'user_avatar'     => $avatar,
                 'last_message'    => '',
                 'last_message_at' => date('Y-m-d H:i:s'),
                 'message_count'   => 0,
@@ -36,7 +42,18 @@ class ConversationModel extends Model
                 'updated_at'      => date('Y-m-d H:i:s'),
             ], true);
 
-            $conversation = $this->find($id);
+            return $this->find($id);
+        }
+
+        // Cap nhat ten/avatar neu truoc do chua lay duoc (van la "Hoc vien")
+        if ($name && ($conversation['user_name'] === 'Học viên' || empty($conversation['user_name']))) {
+            $updateData = ['user_name' => $name, 'updated_at' => date('Y-m-d H:i:s')];
+            if ($avatar) {
+                $updateData['user_avatar'] = $avatar;
+            }
+            $this->update($conversation['id'], $updateData);
+            $conversation['user_name']   = $name;
+            $conversation['user_avatar'] = $avatar ?: $conversation['user_avatar'];
         }
 
         return $conversation;
