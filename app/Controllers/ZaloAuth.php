@@ -37,7 +37,8 @@ class ZaloAuth extends BaseController
             'state'        => $state,
         ]);
 
-        return redirect()->to(self::OAUTH_BASE . '/permission?' . $params);
+        // Must use /v4/oa/permission (OA scope), not /v4/permission (social scope)
+        return redirect()->to(self::OAUTH_BASE . '/oa/permission?' . $params);
     }
 
     /**
@@ -113,16 +114,14 @@ class ZaloAuth extends BaseController
         $appSecret   = env('ZALO_APP_SECRET', '');
         $redirectUri = base_url('zalo/callback');
 
-        // Try OA access token endpoint first
         $url  = self::OAUTH_BASE . '/oa/access_token';
         $body = http_build_query([
-            'app_id'       => $appId,
-            'code'         => $code,
-            'grant_type'   => 'authorization_code',
-            'redirect_uri' => $redirectUri,
+            'app_id'     => $appId,
+            'code'       => $code,
+            'grant_type' => 'authorization_code',
         ]);
 
-        log_message('info', "[ZaloAuth] Trying OA token exchange app_id=$appId redirect_uri=$redirectUri");
+        log_message('info', "[ZaloAuth] OA token exchange app_id=$appId redirect_uri=$redirectUri");
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -141,44 +140,6 @@ class ZaloAuth extends BaseController
 
         $result = json_decode($response, true) ?? [];
         log_message('info', "[ZaloAuth] OA token response HTTP $httpCode: $response");
-
-        // If OA endpoint fails, try social login endpoint (user access token)
-        if (!isset($result['access_token'])) {
-            $url2  = self::OAUTH_BASE . '/access_token';
-            $body2 = http_build_query([
-                'app_id'       => $appId,
-                'code'         => $code,
-                'grant_type'   => 'authorization_code',
-                'redirect_uri' => $redirectUri,
-            ]);
-
-            $ch2 = curl_init($url2);
-            curl_setopt_array($ch2, [
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => $body2,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 30,
-                CURLOPT_HTTPHEADER     => [
-                    'Content-Type: application/x-www-form-urlencoded',
-                    'secret_key: ' . $appSecret,
-                ],
-            ]);
-            $response2 = curl_exec($ch2);
-            $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-            curl_close($ch2);
-
-            $result2 = json_decode($response2, true) ?? [];
-            log_message('info', "[ZaloAuth] Social token response HTTP $httpCode2: $response2");
-
-            // Return combined debug info
-            return [
-                'oa_endpoint'     => $result,
-                'social_endpoint' => $result2,
-                'access_token'    => $result2['access_token'] ?? null,
-                'refresh_token'   => $result2['refresh_token'] ?? null,
-                'expires_in'      => $result2['expires_in'] ?? null,
-            ];
-        }
 
         return $result;
     }
