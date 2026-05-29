@@ -36,12 +36,16 @@ class Admin extends BaseController
         $msgThisWeek  = $this->messageModel->getMessageStatsByWeek();
         $recentConvs  = $this->conversationModel->getConversationsWithPaging(1, 5);
 
+        $claude      = new ClaudeAI();
+        $tokenStats  = $claude->getUsageStats();
+
         return view('admin/dashboard', [
             'title'       => 'Dashboard',
             'convStats'   => $convStats,
             'weeklyStats' => $msgThisWeek,
             'recentConvs' => $recentConvs,
             'botEnabled'  => $this->settingModel->get('bot_enabled', '1'),
+            'tokenStats'  => $tokenStats,
         ]);
     }
 

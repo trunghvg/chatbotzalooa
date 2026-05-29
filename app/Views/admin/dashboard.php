@@ -59,6 +59,56 @@
     </div>
 </div>
 
+<!-- TOKEN USAGE ROW -->
+<?php
+$ts = $tokenStats ?? [];
+$monthTotal = ($ts['month_total'] ?? 0);
+$monthCost  = $ts['month_cost']  ?? 0;
+$totalCost  = $ts['total_cost']  ?? 0;
+$monthCalls = $ts['month_calls'] ?? 0;
+$model      = $ts['model']       ?? '—';
+?>
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cpu-fill text-primary" style="font-size:1.2rem"></i>
+                <span class="fw-semibold">Claude AI Token Usage</span>
+                <span class="badge bg-light text-secondary border" style="font-size:.7rem"><?= esc($model) ?></span>
+            </div>
+            <div class="d-flex gap-4 flex-wrap">
+                <div class="text-center">
+                    <div class="fw-bold fs-6"><?= number_format($monthTotal) ?></div>
+                    <div class="text-muted" style="font-size:.7rem">Token tháng <?= date('m/Y') ?></div>
+                </div>
+                <div class="text-center">
+                    <div class="fw-bold fs-6"><?= number_format($monthCalls) ?></div>
+                    <div class="text-muted" style="font-size:.7rem">Lượt gọi AI tháng này</div>
+                </div>
+                <div class="text-center">
+                    <div class="fw-bold fs-6 text-warning">~$<?= number_format($monthCost, 4) ?></div>
+                    <div class="text-muted" style="font-size:.7rem">Chi phí tháng này (USD)</div>
+                </div>
+                <div class="text-center">
+                    <div class="fw-bold fs-6 text-danger">~$<?= number_format($totalCost, 3) ?></div>
+                    <div class="text-muted" style="font-size:.7rem">Tổng chi phí (USD)</div>
+                </div>
+                <div class="text-center">
+                    <div class="d-flex gap-1" style="font-size:.72rem">
+                        <span class="badge bg-blue-subtle text-primary border">
+                            ↑ <?= number_format($ts['month_input'] ?? 0) ?> in
+                        </span>
+                        <span class="badge bg-green-subtle text-success border">
+                            ↓ <?= number_format($ts['month_output'] ?? 0) ?> out
+                        </span>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:.7rem">Input / Output tokens</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
     <!-- Biểu đồ hoạt động -->
     <div class="col-lg-8">

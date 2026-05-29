@@ -81,6 +81,7 @@ class ClaudeAI
         $response = $this->callAPI('/messages', $payload);
 
         if (isset($response['content'][0]['text'])) {
+            $this->trackTokenUsage($response);
             return $this->stripMarkdown($response['content'][0]['text']);
         }
 
@@ -250,5 +251,93 @@ PROMPT;
     {
         $this->ensureSystemPromptLoaded();
         return $this->systemPrompt;
+    }
+
+    /**
+     * Luu so token da dung sau moi lan goi API thanh cong
+     */
+    private function trackTokenUsage(array $response): void
+    {
+        $input  = (int) ($response['usage']['input_tokens']  ?? 0);
+        $output = (int) ($response['usage']['output_tokens'] ?? 0);
+
+        if ($input === 0 && $output === 0) return;
+
+        try {
+            $month = date('Y-m');
+
+            $prevInput  = (int) ($this->settingModel->get('claude_tokens_input_'  . $month) ?? 0);
+            $prevOutput = (int) ($this->settingModel->get('claude_tokens_output_' . $month) ?? 0);
+            $prevCalls  = (int) ($this->settingModel->get('claude_calls_'         . $month) ?? 0);
+
+            $this->settingModel->saveSetting('claude_tokens_input_'  . $month, $prevInput  + $input);
+            $this->settingModel->saveSetting('claude_tokens_output_' . $month, $prevOutput + $output);
+            $this->settingModel->saveSetting('claude_calls_'         . $month, $prevCalls  + 1);
+
+            // Tong tat ca cac thang
+            $totalInput  = (int) ($this->settingModel->get('claude_tokens_input_total')  ?? 0);
+            $totalOutput = (int) ($this->settingModel->get('claude_tokens_output_total') ?? 0);
+            $this->settingModel->saveSetting('claude_tokens_input_total',  $totalInput  + $input);
+            $this->settingModel->saveSetting('claude_tokens_output_total', $totalOutput + $output);
+        } catch (\Throwable $e) {
+            log_message('warning', '[ClaudeAI] trackTokenUsage failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Tra ve thong ke su dung token
+     */
+    public function getUsageStats(): array
+    {
+        $month = date('Y-m');
+
+        $monthInput  = (int) ($this->settingModel->get('claude_tokens_input_'  . $month) ?? 0);
+        $monthOutput = (int) ($this->settingModel->get('claude_tokens_output_' . $month) ?? 0);
+        $monthCalls  = (int) ($this->settingModel->get('claude_calls_'         . $month) ?? 0);
+
+        $totalInput  = (int) ($this->settingModel->get('claude_tokens_input_total')  ?? 0);
+        $totalOutput = (int) ($this->settingModel->get('claude_tokens_output_total') ?? 0);
+
+        // Gia usd per 1M tokens (uoc tinh, cap nhat theo model)
+        [$priceIn, $priceOut] = $this->getModelPricing();
+
+        $monthCost = ($monthInput / 1_000_000 * $priceIn) + ($monthOutput / 1_000_000 * $priceOut);
+        $totalCost = ($totalInput / 1_000_000 * $priceIn) + ($totalOutput / 1_000_000 * $priceOut);
+
+        return [
+            'month'        => $month,
+            'month_input'  => $monthInput,
+            'month_output' => $monthOutput,
+            'month_total'  => $monthInput + $monthOutput,
+            'month_calls'  => $monthCalls,
+            'month_cost'   => $monthCost,
+            'total_input'  => $totalInput,
+            'total_output' => $totalOutput,
+            'total_cost'   => $totalCost,
+            'model'        => $this->model,
+            'price_in'     => $priceIn,
+            'price_out'    => $priceOut,
+        ];
+    }
+
+    /**
+     * Gia USD/1M tokens theo model (uoc tinh)
+     * https://www.anthropic.com/pricing
+     */
+    private function getModelPricing(): array
+    {
+        $model = strtolower($this->model);
+
+        if (str_contains($model, 'opus')) {
+            return [15.0, 75.0];
+        }
+        if (str_contains($model, 'sonnet')) {
+            return [3.0, 15.0];
+        }
+        if (str_contains($model, 'haiku')) {
+            return [0.25, 1.25];
+        }
+
+        return [3.0, 15.0]; // default sonnet
     }
 }
