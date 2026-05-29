@@ -175,10 +175,13 @@ class Webhook extends BaseController
         // Cap nhat cuoc hoi thoai
         $this->conversationModel->updateLastMessage($convId, $messageText);
 
-        // Gui phan hoi ve Zalo
-        $this->zalo->sendTextMessage($senderId, $aiResponse);
-
-        log_message('info', "[Webhook] Replied to $senderId in {$processingTime}ms");
+        // Gui phan hoi ve Zalo — log ket qua de debug
+        $sendResult = $this->zalo->sendTextMessage($senderId, $aiResponse);
+        if (!empty($sendResult['error']) && $sendResult['error'] !== 0) {
+            log_message('error', "[Webhook] sendTextMessage FAILED to $senderId: " . json_encode($sendResult));
+        } else {
+            log_message('info', "[Webhook] Replied to $senderId in {$processingTime}ms: " . json_encode($sendResult));
+        }
 
         return $this->jsonResponse(['status' => 'ok', 'processing_ms' => $processingTime]);
     }
