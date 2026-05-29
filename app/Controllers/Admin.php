@@ -223,6 +223,44 @@ class Admin extends BaseController
         }
     }
 
+    /**
+     * Tra ve tin nhan moi hon lastId cho mot cuoc hoi thoai (dung de polling)
+     */
+    public function apiConversationMessages(int $id): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $lastId   = (int) ($this->request->getGet('after') ?? 0);
+        $messages = $this->messageModel
+            ->where('conversation_id', $id)
+            ->where('id >', $lastId)
+            ->orderBy('id', 'ASC')
+            ->findAll();
+
+        $conv = $this->conversationModel->find($id);
+
+        return $this->jsonResponse([
+            'messages'      => $messages,
+            'message_count' => $conv['message_count'] ?? 0,
+        ]);
+    }
+
+    /**
+     * Tra ve danh sach cuoc hoi thoai moi nhat (dung de polling)
+     */
+    public function apiConversationsList(): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $convs = $this->conversationModel->getConversationsWithPaging(1, 20);
+        $total = $this->conversationModel->countAllResults(false);
+
+        return $this->jsonResponse([
+            'total'         => $total,
+            'conversations' => $convs,
+        ]);
+    }
+
     // ----------------------------------------------------------------
     // KNOWLEDGE BASE
     // ----------------------------------------------------------------

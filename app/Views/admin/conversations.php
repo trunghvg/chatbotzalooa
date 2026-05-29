@@ -31,7 +31,7 @@
                 </thead>
                 <tbody>
                 <?php foreach ($conversations as $conv): ?>
-                <tr>
+                <tr data-id="<?= $conv['id'] ?>">
                     <td class="text-muted small">#<?= $conv['id'] ?></td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
@@ -50,10 +50,10 @@
                         </div>
                     </td>
                     <td style="max-width:280px">
-                        <div class="text-truncate text-muted small"><?= esc($conv['last_message'] ?? '—') ?></div>
+                        <div class="text-truncate text-muted small last-msg"><?= esc($conv['last_message'] ?? '—') ?></div>
                     </td>
                     <td>
-                        <span class="badge bg-light text-dark"><?= number_format($conv['message_count'] ?? 0) ?></span>
+                        <span class="badge bg-light text-dark msg-count"><?= number_format($conv['message_count'] ?? 0) ?></span>
                     </td>
                     <td>
                         <?php
@@ -68,7 +68,7 @@
                             <?= $label ?>
                         </span>
                     </td>
-                    <td class="text-muted small">
+                    <td class="text-muted small conv-time">
                         <?= $conv['last_message_at'] ? date('d/m/Y H:i', strtotime($conv['last_message_at'])) : '—' ?>
                     </td>
                     <td>
@@ -125,5 +125,51 @@ async function deleteConversation(id, btn) {
         btn.disabled = false;
     }
 }
+
+// Auto-refresh danh sach hoi thoai moi 10 giay
+async function refreshConversationList() {
+    try {
+        const res  = await fetch('<?= base_url('admin/api/conversations/list') ?>');
+        const data = await res.json();
+        if (!data.conversations) return;
+
+        const tbody = document.querySelector('table tbody');
+        if (!tbody) return;
+
+        // Collect currently displayed ids to detect new rows
+        const existingIds = new Set(
+            [...tbody.querySelectorAll('tr')].map(r => parseInt(r.querySelector('td')?.textContent.replace('#','')))
+        );
+
+        data.conversations.forEach(conv => {
+            const row = tbody.querySelector(`tr[data-id="${conv.id}"]`);
+            if (!row) return; // new conv only appears on page reload (pagination)
+
+            // Update last message text
+            const lastMsgCell = row.querySelector('.last-msg');
+            if (lastMsgCell) lastMsgCell.textContent = conv.last_message || '—';
+
+            // Update message count badge
+            const countBadge = row.querySelector('.msg-count');
+            if (countBadge) countBadge.textContent = Number(conv.message_count || 0).toLocaleString('vi-VN');
+
+            // Update time
+            const timeCell = row.querySelector('.conv-time');
+            if (timeCell && conv.last_message_at) {
+                const d = new Date(conv.last_message_at.replace(' ','T'));
+                timeCell.textContent = d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})
+                    + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+            }
+        });
+
+        // Update total count header
+        const totalEl = document.querySelector('.text-muted.small');
+        if (totalEl && data.total !== undefined) {
+            totalEl.textContent = 'Tổng cộng ' + Number(data.total).toLocaleString('vi-VN') + ' cuộc hội thoại';
+        }
+    } catch(e) { /* ignore */ }
+}
+
+setInterval(refreshConversationList, 10000);
 </script>
 <?= $this->endSection() ?>

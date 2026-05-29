@@ -59,6 +59,8 @@ $routes->get('admin/api/stats', 'Admin::apiStats');
 $routes->post('admin/api/test-claude', 'Admin::testClaude');
 $routes->post('admin/api/test-zalo', 'Admin::testZalo');
 $routes->post('admin/api/refresh-token', 'Admin::refreshZaloToken');
+$routes->get('admin/api/conversations/(:num)/messages', 'Admin::apiConversationMessages/$1');
+$routes->get('admin/api/conversations/list', 'Admin::apiConversationsList');
 
 // =====================================================================
 // ZALO OAUTH CALLBACK

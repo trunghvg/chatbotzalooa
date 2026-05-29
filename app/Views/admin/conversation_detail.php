@@ -113,9 +113,59 @@
 
 <?= $this->section('scripts') ?>
 <script>
-// Auto scroll to bottom
-const chatBox = document.getElementById('chatBox');
+const chatBox  = document.getElementById('chatBox');
+const convId   = <?= (int)$conversation['id'] ?>;
+const apiBase  = '<?= base_url('admin/api/conversations') ?>';
+let lastMsgId  = <?= !empty($conversation['messages']) ? (int)end($conversation['messages'])['id'] : 0 ?>;
+let atBottom   = true;
+
+chatBox.addEventListener('scroll', () => {
+    atBottom = chatBox.scrollTop + chatBox.clientHeight >= chatBox.scrollHeight - 10;
+});
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderMsg(msg) {
+    const isUser = msg.role === 'user';
+    const d = new Date(msg.created_at.replace(' ', 'T'));
+    const ts = d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})
+             + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const ms = msg.processing_time_ms
+        ? `<div class="text-muted mt-1" style="font-size:.65rem">⚡ ${msg.processing_time_ms}ms</div>` : '';
+    return `<div class="d-flex flex-column ${isUser ? 'align-items-end msg-user' : 'align-items-start msg-bot'}">
+        <div class="text-muted mb-1" style="font-size:.7rem">${isUser ? '👤 Học viên' : '🤖 Bot AI'} · ${ts}</div>
+        <div class="msg-bubble">${escHtml(msg.content)}</div>${ms}
+    </div>`;
+}
+
+async function pollMessages() {
+    try {
+        const res  = await fetch(`${apiBase}/${convId}/messages?after=${lastMsgId}`);
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+            // Remove empty-state placeholder if present
+            const placeholder = chatBox.querySelector('.text-center.text-muted');
+            if (placeholder) placeholder.remove();
+
+            data.messages.forEach(msg => {
+                chatBox.insertAdjacentHTML('beforeend', renderMsg(msg));
+                lastMsgId = Math.max(lastMsgId, msg.id);
+            });
+            // Update message count label
+            const countEl = document.querySelector('.card-header .text-muted');
+            if (countEl && data.message_count) countEl.textContent = data.message_count + ' tin nhắn';
+            if (atBottom) chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    } catch(e) { /* ignore network errors */ }
+}
+
+// Initial scroll to bottom
 chatBox.scrollTop = chatBox.scrollHeight;
+
+// Poll every 3 seconds
+setInterval(pollMessages, 3000);
 
 async function sendTestMsg() {
     const msg = document.getElementById('testMsg').value.trim();
