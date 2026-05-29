@@ -85,10 +85,19 @@ class ZaloAuth extends BaseController
             ]);
         }
 
+        // Debug: show full request details to diagnose -14005
+        $debugInfo = [
+            'app_id'       => env('ZALO_APP_ID', '(not set)'),
+            'redirect_uri' => base_url('zalo/callback'),
+            'code_prefix'  => substr($code, 0, 20) . '...',
+            'oa_id'        => $oaId,
+            'zalo_response'=> $result,
+        ];
+
         return view('admin/oauth_result', [
             'title'   => 'Xác thực Zalo',
             'success' => false,
-            'message' => 'Lỗi đổi token: ' . json_encode($result),
+            'message' => 'Lỗi đổi token: <pre>' . json_encode($debugInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . '</pre>',
         ]);
     }
 
