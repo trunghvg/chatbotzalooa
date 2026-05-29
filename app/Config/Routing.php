@@ -23,4 +23,5 @@ class Routing extends BaseConfig
     public bool $autoRoute = false;
     public bool $prioritize = false;
     public bool $useControllerAttributes = false;
+    public bool $multipleSegmentsOneParam = false;
 }
