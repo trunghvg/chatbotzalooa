@@ -50,6 +50,13 @@ class Database extends Config
             $username = getenv('DB_USER') ?: 'root';
             $password = (string) getenv('DB_PASS');
             $database = getenv('DB_NAME') ?: 'railway';
+        } elseif (getenv('database.default.hostname')) {
+            // Standard CodeIgniter .env format (dung cho CyberPanel / shared hosting / VPS)
+            $hostname = getenv('database.default.hostname');
+            $port     = (int) (getenv('database.default.port') ?: 3306);
+            $username = getenv('database.default.username') ?: 'root';
+            $password = (string) getenv('database.default.password');
+            $database = getenv('database.default.database') ?: 'chatbotzalooa';
         } else {
             // Fallback: parse MYSQL_URL / DATABASE_URL
             // MYSQL_PUBLIC_URL uses Railway proxy — accessible even when private network fails

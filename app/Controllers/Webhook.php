@@ -70,9 +70,20 @@ class Webhook extends BaseController
         header('Content-Type: application/json');
         echo '{"status":"ok"}';
 
-        // With PHP-FPM: flush response to client now, keep processing in background
+        // Flush response to client now, keep processing in background
+        // PHP-FPM (nginx/Docker) dung fastcgi_finish_request
+        // LiteSpeed / OpenLiteSpeed (CyberPanel) dung litespeed_finish_request
         if (function_exists('fastcgi_finish_request')) {
             fastcgi_finish_request();
+        } elseif (function_exists('litespeed_finish_request')) {
+            litespeed_finish_request();
+        } else {
+            // Apache mod_php / fallback: flush output buffer
+            if (session_id()) {
+                session_write_close();
+            }
+            @ob_end_flush();
+            @flush();
         }
 
         // --- Everything below runs after Zalo already received 200 ---
