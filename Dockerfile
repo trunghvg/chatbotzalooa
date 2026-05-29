@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libicu-dev \
     gettext-base \
+    poppler-utils \
     && docker-php-ext-install \
         mysqli \
         pdo \

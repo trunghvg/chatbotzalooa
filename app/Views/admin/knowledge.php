@@ -10,9 +10,8 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <!-- Import Excel -->
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
-            <i class="bi bi-file-earmark-excel me-1"></i>Import Excel
+            <i class="bi bi-cloud-upload me-1"></i>Import tài liệu
         </button>
         <a href="<?= base_url('admin/knowledge/create') ?>" class="btn btn-primary">
             <i class="bi bi-plus-lg me-1"></i>Thêm mục mới
@@ -143,43 +142,79 @@
     </div>
 </div>
 
-<!-- Import Excel Modal -->
+<!-- Import Modal -->
 <div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Import từ Excel
+                    <i class="bi bi-cpu-fill text-primary me-2"></i>Import tài liệu bằng Claude AI
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="<?= base_url('admin/knowledge/import') ?>" enctype="multipart/form-data">
+            <form method="POST" action="<?= base_url('admin/knowledge/import') ?>"
+                  enctype="multipart/form-data" id="importForm">
                 <?= csrf_field() ?>
                 <div class="modal-body">
-                    <div class="alert alert-warning small border-0">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <strong>Cấu trúc Excel được hỗ trợ:</strong><br>
-                        • Mỗi sheet = một danh mục<br>
-                        • Cột A: Tiêu đề / Trường thông tin<br>
-                        • Cột B: Nội dung / Giá trị<br>
-                        • Hỗ trợ cả file từ Zalo OA lẫn file tự soạn
+
+                    <!-- Supported formats -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="border rounded-3 text-center p-3">
+                                <i class="bi bi-file-earmark-excel-fill text-success" style="font-size:2rem"></i>
+                                <div class="small fw-semibold mt-1">Excel</div>
+                                <div class="text-muted" style="font-size:.7rem">.xlsx / .xls</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="border rounded-3 text-center p-3">
+                                <i class="bi bi-file-earmark-word-fill text-primary" style="font-size:2rem"></i>
+                                <div class="small fw-semibold mt-1">Word</div>
+                                <div class="text-muted" style="font-size:.7rem">.docx / .doc</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="border rounded-3 text-center p-3">
+                                <i class="bi bi-file-earmark-pdf-fill text-danger" style="font-size:2rem"></i>
+                                <div class="small fw-semibold mt-1">PDF</div>
+                                <div class="text-muted" style="font-size:.7rem">.pdf (text)</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="border rounded-3 text-center p-3">
+                                <i class="bi bi-file-earmark-text-fill text-secondary" style="font-size:2rem"></i>
+                                <div class="small fw-semibold mt-1">Text</div>
+                                <div class="text-muted" style="font-size:.7rem">.txt</div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="alert alert-primary border-0 small mb-3" style="background:#eff6ff">
+                        <i class="bi bi-robot me-2"></i>
+                        <strong>Claude AI tự động:</strong> Đọc tài liệu, phân tích nội dung, tạo các mục kiến thức phù hợp
+                        với hoạt động của Phường Lê Chân theo văn phong chính trị - nhà nước.
+                        <br><span class="text-muted">Lưu ý: PDF phải là file text (không phải ảnh scan). Excel được xử lý trực tiếp không qua AI.</span>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Chọn file Excel (.xlsx)</label>
-                        <input type="file" class="form-control" name="excel_file"
-                               accept=".xlsx,.xls" required>
+                        <label class="form-label fw-semibold">Chọn file tài liệu</label>
+                        <input type="file" class="form-control" name="doc_file"
+                               accept=".xlsx,.xls,.docx,.doc,.pdf,.txt" required
+                               onchange="updateFileInfo(this)">
+                        <div id="fileInfo" class="form-text text-muted mt-1"></div>
                     </div>
+
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="replace_all" value="1" id="replaceAll">
-                        <label class="form-check-label small" for="replaceAll">
-                            Xóa toàn bộ kiến thức cũ trước khi import
+                        <label class="form-check-label small text-danger fw-semibold" for="replaceAll">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Xóa toàn bộ kiến thức cũ trước khi import
                         </label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-upload me-1"></i>Import
+                    <button type="submit" class="btn btn-primary" id="importBtn">
+                        <i class="bi bi-cpu me-1"></i>Phân tích & Import
                     </button>
                 </div>
             </form>
@@ -202,6 +237,25 @@ document.querySelectorAll('.toggle-active').forEach(cb => {
             alert('Lỗi cập nhật!');
         }
     });
+});
+
+// File info display
+function updateFileInfo(input) {
+    const info = document.getElementById('fileInfo');
+    if (!input.files[0]) { info.textContent = ''; return; }
+    const f    = input.files[0];
+    const ext  = f.name.split('.').pop().toLowerCase();
+    const size = (f.size / 1024 / 1024).toFixed(2);
+    const isExcel = ['xlsx','xls'].includes(ext);
+    info.innerHTML = `<i class="bi bi-file-earmark me-1"></i>${f.name} (${size} MB)`
+        + (isExcel ? ' — xử lý trực tiếp' : ' — Claude AI sẽ phân tích (~20-40 giây)');
+}
+
+// Show loading on import submit
+document.getElementById('importForm')?.addEventListener('submit', function() {
+    const btn = document.getElementById('importBtn');
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang phân tích...';
 });
 
 // Delete entry

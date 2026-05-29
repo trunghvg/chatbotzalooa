@@ -384,33 +384,34 @@ class Admin extends BaseController
     {
         $this->requireAuth();
 
-        $file = $this->request->getFile('excel_file');
+        $file = $this->request->getFile('doc_file');
 
         if (!$file || !$file->isValid()) {
             return redirect()->to('/admin/knowledge')
-                             ->with('error', 'Vui lòng chọn file Excel hợp lệ!');
+                             ->with('error', 'Vui lòng chọn file hợp lệ!');
         }
 
-        if (!in_array($file->getClientMimeType(), [
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel',
-            'application/octet-stream',
-        ])) {
+        $allowedExt = ['xlsx', 'xls', 'docx', 'doc', 'pdf', 'txt'];
+        $ext        = strtolower($file->getClientExtension());
+
+        if (!in_array($ext, $allowedExt)) {
             return redirect()->to('/admin/knowledge')
-                             ->with('error', 'Chỉ hỗ trợ file .xlsx hoặc .xls!');
+                             ->with('error', "Định dạng .$ext không được hỗ trợ. Chấp nhận: " . implode(', ', $allowedExt));
         }
 
-        $savedPath = $file->store('uploads/excel', $file->getRandomName());
+        $savedPath = $file->store('uploads/docs', $file->getRandomName() . '.' . $ext);
         $fullPath  = WRITEPATH . $savedPath;
+        $replaceAll = (bool) $this->request->getPost('replace_all');
 
         try {
-            $importer = new \App\Libraries\ExcelKnowledgeImporter();
-            $count    = $importer->import($fullPath);
+            $importer = new \App\Libraries\DocumentImporter();
+            $count    = $importer->import($fullPath, $file->getClientName(), $replaceAll);
 
+            $typeLabel = in_array($ext, ['xlsx', 'xls']) ? 'Excel' : strtoupper($ext);
             return redirect()->to('/admin/knowledge')
-                             ->with('success', "Đã import $count mục kiến thức từ file Excel!");
+                             ->with('success', "Đã import $count mục kiến thức từ file $typeLabel bằng Claude AI!");
         } catch (\Throwable $e) {
-            log_message('error', '[Admin] Excel import error: ' . $e->getMessage());
+            log_message('error', '[Admin] Document import error: ' . $e->getMessage());
             return redirect()->to('/admin/knowledge')
                              ->with('error', 'Lỗi import: ' . $e->getMessage());
         }
