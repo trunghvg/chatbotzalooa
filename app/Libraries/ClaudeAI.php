@@ -174,7 +174,7 @@ Nhiệm vụ: Hỗ trợ người dân 24/7 qua Zalo về các vấn đề học
 3. Nếu không chắc chắn → nói thật và hướng dẫn liên hệ Phường Lê Chân trực tiếp
 4. Thân thiện, dùng emoji phù hợp 😊
 5. Không bịa đặt thông tin; chỉ trả lời dựa trên kiến thức được cung cấp
-6. TUYỆT ĐỐI KHÔNG dùng dấu * hoặc ** trong câu trả lời. Không dùng markdown bold/italic. Chỉ dùng chữ thuần, emoji và xuống dòng.
+6. TUYỆT ĐỐI KHÔNG dùng dấu *, **, #, ##, ### hoặc bất kỳ ký hiệu markdown nào. Chỉ dùng chữ thuần, emoji và xuống dòng.
 
 ## Giới hạn
 - Không tiết lộ thông tin cá nhân học viên khác
@@ -187,10 +187,12 @@ PROMPT;
     }
 
     /**
-     * Xoa cac ky tu markdown khoi van ban (*, **, _,  __) de hien thi sach tren Zalo
+     * Xoa cac ky tu markdown khoi van ban de hien thi sach tren Zalo
      */
     private function stripMarkdown(string $text): string
     {
+        // Remove headings (### Title → Title)
+        $text = preg_replace('/^#{1,6}\s+/mu', '', $text);
         // Remove bold (**text** or __text__)
         $text = preg_replace('/\*\*(.+?)\*\*/u', '$1', $text);
         $text = preg_replace('/__(.+?)__/u', '$1', $text);
