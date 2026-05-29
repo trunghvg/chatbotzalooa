@@ -51,6 +51,7 @@ class ZaloOA
 
     /**
      * Gui tin nhan van ban den nguoi dung Zalo
+     * Thu v3.0/oa/message/cs truoc (verified OA), fallback v2.0/oa/message (basic OA)
      */
     public function sendTextMessage(string $userId, string $text): array
     {
@@ -59,7 +60,15 @@ class ZaloOA
             'message'   => ['text'    => $text],
         ];
 
-        return $this->post('/v3.0/oa/message/cs', $payload);
+        $result = $this->post('/v3.0/oa/message/cs', $payload);
+
+        // -235: OA type not supported by CS API → try older v2.0 endpoint
+        if (($result['error'] ?? null) === -235) {
+            log_message('info', '[ZaloOA] CS API not supported, trying v2.0/oa/message');
+            $result = $this->post('/v2.0/oa/message', $payload);
+        }
+
+        return $result;
     }
 
     /**
@@ -197,7 +206,7 @@ class ZaloOA
         return $this->request('POST', $endpoint, $data);
     }
 
-    private function get(string $endpoint, array $params = []): array
+    private function get(string $endpoint, array $params = [], bool $retried = false): array
     {
         $this->ensureTokensLoaded();
         $url = self::API_BASE . $endpoint;
@@ -216,7 +225,6 @@ class ZaloOA
         ]);
 
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error    = curl_error($ch);
         curl_close($ch);
 
@@ -227,19 +235,19 @@ class ZaloOA
 
         $result = json_decode($response, true) ?? [];
 
-        // Token het han - tu dong refresh va thu lai
-        if (($result['error'] ?? null) === -216) {
+        // Token het han - tu dong refresh va thu lai (mot lan)
+        if (($result['error'] ?? null) === -216 && !$retried) {
             log_message('warning', '[ZaloOA] Token expired, refreshing...');
             $refreshResult = $this->refreshAccessToken();
             if (isset($refreshResult['access_token'])) {
-                return $this->get($endpoint, $params);
+                return $this->get($endpoint, $params, true);
             }
         }
 
         return $result;
     }
 
-    private function request(string $method, string $endpoint, array $data = []): array
+    private function request(string $method, string $endpoint, array $data = [], bool $retried = false): array
     {
         $this->ensureTokensLoaded();
         $url = self::API_BASE . $endpoint;
@@ -257,7 +265,6 @@ class ZaloOA
         ]);
 
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error    = curl_error($ch);
         curl_close($ch);
 
@@ -268,12 +275,12 @@ class ZaloOA
 
         $result = json_decode($response, true) ?? [];
 
-        // Token het han - tu dong refresh va thu lai
-        if (($result['error'] ?? null) === -216) {
+        // Token het han - tu dong refresh va thu lai (mot lan)
+        if (($result['error'] ?? null) === -216 && !$retried) {
             log_message('warning', '[ZaloOA] Token expired, refreshing...');
             $refreshResult = $this->refreshAccessToken();
             if (isset($refreshResult['access_token'])) {
-                return $this->request($method, $endpoint, $data);
+                return $this->request($method, $endpoint, $data, true);
             }
         }
 
