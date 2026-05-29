@@ -38,7 +38,7 @@
             <div class="brand-icon">
                 <i class="bi bi-robot text-white"></i>
             </div>
-            <h4 class="fw-bold">ZaloOA Bot</h4>
+            <h4 class="fw-bold">Trung tâm chính trị Lê Chân</h4>
             <p class="text-muted small">Claude AI Powered — Đăng nhập Admin</p>
         </div>
 
