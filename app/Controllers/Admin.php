@@ -263,8 +263,78 @@ class Admin extends BaseController
     }
 
     /**
-     * Lay lai ten/avatar cua toan bo hoc vien tu Zalo API
+     * Xuat toan bo database ra file .sql (download truc tiep)
      */
+    public function exportDatabase(): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $db     = \Config\Database::connect();
+        $tables = ['conversations', 'messages', 'knowledge_base', 'settings'];
+        $sql    = '';
+        $now    = date('Y-m-d H:i:s');
+
+        $sql .= "-- ============================================================\n";
+        $sql .= "-- Chatbot Phường Lê Chân — Database Export\n";
+        $sql .= "-- Exported: $now\n";
+        $sql .= "-- ============================================================\n\n";
+        $sql .= "SET NAMES utf8mb4;\n";
+        $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+
+        foreach ($tables as $table) {
+            // Kiem tra bang co ton tai khong
+            try {
+                $exists = $db->query("SHOW TABLES LIKE '$table'")->getNumRows();
+                if (!$exists) continue;
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            // CREATE TABLE statement
+            $createRow = $db->query("SHOW CREATE TABLE `$table`")->getRow();
+            $createSql = $createRow->{'Create Table'} ?? '';
+
+            $sql .= "-- --------------------------------------------------------\n";
+            $sql .= "-- Table: `$table`\n";
+            $sql .= "-- --------------------------------------------------------\n\n";
+            $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+            $sql .= $createSql . ";\n\n";
+
+            // INSERT data
+            $rows = $db->query("SELECT * FROM `$table`")->getResultArray();
+            if (!empty($rows)) {
+                $cols    = '`' . implode('`, `', array_keys($rows[0])) . '`';
+                $sql    .= "INSERT INTO `$table` ($cols) VALUES\n";
+                $chunks  = array_chunk($rows, 100);
+
+                foreach ($chunks as $ci => $chunk) {
+                    $values = [];
+                    foreach ($chunk as $row) {
+                        $escaped = array_map(function ($v) use ($db) {
+                            if ($v === null) return 'NULL';
+                            return "'" . $db->escapeString((string) $v) . "'";
+                        }, array_values($row));
+                        $values[] = '(' . implode(', ', $escaped) . ')';
+                    }
+                    // Last chunk of last group = semicolon, others = comma
+                    $isLast = ($ci === count($chunks) - 1);
+                    $sql   .= implode(",\n", $values) . ($isLast ? ";\n" : ",\n");
+                }
+                $sql .= "\n";
+            }
+        }
+
+        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+
+        $filename = 'chatbot_db_' . date('Ymd_His') . '.sql';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/octet-stream')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0')
+            ->setBody($sql);
+    }
     public function refreshUserNames(): ResponseInterface
     {
         $this->requireAuth();

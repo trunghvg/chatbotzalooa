@@ -186,6 +186,9 @@
         </a>
 
         <div class="nav-section">Tài khoản</div>
+        <a href="<?= base_url('admin/export-db') ?>" class="nav-link">
+            <i class="bi bi-download"></i> Xuất Database (.sql)
+        </a>
         <a href="<?= base_url('auth/logout') ?>" class="nav-link">
             <i class="bi bi-box-arrow-left"></i> Đăng xuất
         </a>

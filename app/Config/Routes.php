@@ -71,3 +71,6 @@ $routes->get('zalo/authorize', 'ZaloAuth::authorize');
 
 // Cron job: tu dong refresh Zalo token (khong can dang nhap)
 $routes->get('cron/refresh-token', 'Admin::cronRefreshToken');
+
+// Export database
+$routes->get('admin/export-db', 'Admin::exportDatabase');
