@@ -68,3 +68,6 @@ $routes->post('admin/api/refresh-user-names', 'Admin::refreshUserNames');
 // =====================================================================
 $routes->get('zalo/callback', 'ZaloAuth::callback');
 $routes->get('zalo/authorize', 'ZaloAuth::authorize');
+
+// Cron job: tu dong refresh Zalo token (khong can dang nhap)
+$routes->get('cron/refresh-token', 'Admin::cronRefreshToken');

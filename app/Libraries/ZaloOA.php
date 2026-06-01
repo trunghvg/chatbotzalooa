@@ -38,11 +38,24 @@ class ZaloOA
         if ($this->tokensLoaded) {
             return;
         }
+
         $this->accessToken  = $this->settingModel->get('zalo_access_token')
                               ?? env('ZALO_ACCESS_TOKEN', '');
         $this->refreshToken = $this->settingModel->get('zalo_refresh_token')
                               ?? env('ZALO_REFRESH_TOKEN', '');
         $this->tokensLoaded = true;
+
+        // Tu dong refresh neu token sap het han (con < 10 phut)
+        if ($this->refreshToken) {
+            $expiresAt = $this->settingModel->get('zalo_token_expires_at');
+            if ($expiresAt) {
+                $secondsLeft = strtotime($expiresAt) - time();
+                if ($secondsLeft < 600) {
+                    log_message('info', '[ZaloOA] Token expires in ' . $secondsLeft . 's, proactive refresh...');
+                    $this->refreshAccessToken();
+                }
+            }
+        }
     }
 
     // ----------------------------------------------------------------

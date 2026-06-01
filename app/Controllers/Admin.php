@@ -228,6 +228,41 @@ class Admin extends BaseController
     }
 
     /**
+     * Cron endpoint: tu dong refresh Zalo token
+     * Goi bang: GET /cron/refresh-token?secret=CRON_SECRET
+     * Them vao CyberPanel cron: curl -s "https://domain/cron/refresh-token?secret=xxx"
+     */
+    public function cronRefreshToken(): ResponseInterface
+    {
+        $secret = $this->request->getGet('secret');
+        $cronSecret = env('CRON_SECRET', '');
+
+        if (empty($cronSecret) || $secret !== $cronSecret) {
+            return $this->response
+                ->setStatusCode(401)
+                ->setJSON(['error' => 'Unauthorized']);
+        }
+
+        try {
+            $zalo   = new ZaloOA();
+            $result = $zalo->refreshAccessToken();
+            $ok     = isset($result['access_token']);
+
+            log_message('info', '[Cron] Zalo token refresh ' . ($ok ? 'SUCCESS' : 'FAILED') . ': ' . json_encode($result));
+
+            return $this->jsonResponse([
+                'success'    => $ok,
+                'time'       => date('Y-m-d H:i:s'),
+                'expires_in' => $result['expires_in'] ?? null,
+                'error'      => $result['error'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[Cron] Zalo token refresh exception: ' . $e->getMessage());
+            return $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Lay lai ten/avatar cua toan bo hoc vien tu Zalo API
      */
     public function refreshUserNames(): ResponseInterface
