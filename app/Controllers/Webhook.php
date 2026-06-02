@@ -100,9 +100,13 @@ class Webhook extends BaseController
                 return $this->response->setStatusCode(200);
             }
 
-            log_message('info', '[Webhook] Event: ' . ($payload['event_name'] ?? 'unknown'));
+            $eventName = $payload['event_name'] ?? 'unknown';
+            $senderLog = $payload['sender'] ?? $payload['follower'] ?? [];
+            log_message('info', '[Webhook] Event: ' . $eventName
+                . ' sender_id=' . ($senderLog['id'] ?? '?')
+                . ' name=' . ($senderLog['display_name'] ?? $senderLog['name'] ?? '(none)'));
 
-            $eventName = $payload['event_name'] ?? '';
+            $eventName = $payload['event_name'] ?? $eventName;
 
             match ($eventName) {
                 'user_send_text'  => $this->handleTextMessage($payload, $startTime),
@@ -125,20 +129,34 @@ class Webhook extends BaseController
     // ----------------------------------------------------------------
     private function handleTextMessage(array $payload, float $startTime): ResponseInterface
     {
-        $senderId   = $payload['sender']['id']       ?? $payload['user_id_by_app'] ?? '';
+        $senderId    = $payload['sender']['id']      ?? $payload['user_id_by_app'] ?? '';
         $messageText = $payload['message']['text']   ?? '';
-        $zaloMsgId  = $payload['message']['msg_id']  ?? '';
+        $zaloMsgId   = $payload['message']['msg_id'] ?? '';
 
         if (empty($senderId) || empty($messageText)) {
             return $this->jsonResponse(['error' => 'Missing sender or message'], 400);
         }
 
-        // Lay/tao cuoc hoi thoai
-        $userProfile  = [];
-        try {
-            $userProfile = $this->zalo->getUserProfile($senderId);
-        } catch (\Throwable $e) {
-            log_message('warning', '[Webhook] Could not fetch user profile: ' . $e->getMessage());
+        // Lay ten tu webhook payload truoc (khong can API call, khong can permission)
+        $senderName   = trim($payload['sender']['display_name'] ?? $payload['sender']['name'] ?? '');
+        $senderAvatar = trim($payload['sender']['avatar']       ?? '');
+
+        // Neu co ten tu payload → dung luon, khong can goi getUserProfile
+        if ($senderName) {
+            $userProfile = [
+                'data' => [
+                    'display_name' => $senderName,
+                    'avatar'       => $senderAvatar,
+                ],
+            ];
+        } else {
+            // Fallback: goi API (can quyen manage_followers)
+            $userProfile = [];
+            try {
+                $userProfile = $this->zalo->getUserProfile($senderId);
+            } catch (\Throwable $e) {
+                log_message('warning', '[Webhook] Could not fetch user profile: ' . $e->getMessage());
+            }
         }
 
         $conversation = $this->conversationModel->findOrCreate($senderId, $userProfile);
@@ -253,11 +271,18 @@ class Webhook extends BaseController
             return $this->jsonResponse(['status' => 'ok']);
         }
 
-        // Tao cuoc hoi thoai moi
-        $userProfile = [];
-        try {
-            $userProfile = $this->zalo->getUserProfile($senderId);
-        } catch (\Throwable $e) {}
+        // Lay ten tu payload follow
+        $followerName   = trim($payload['follower']['display_name'] ?? $payload['follower']['name'] ?? '');
+        $followerAvatar = trim($payload['follower']['avatar'] ?? '');
+
+        if ($followerName) {
+            $userProfile = ['data' => ['display_name' => $followerName, 'avatar' => $followerAvatar]];
+        } else {
+            $userProfile = [];
+            try {
+                $userProfile = $this->zalo->getUserProfile($senderId);
+            } catch (\Throwable $e) {}
+        }
 
         $this->conversationModel->findOrCreate($senderId, $userProfile);
 
