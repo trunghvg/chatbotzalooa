@@ -132,7 +132,9 @@ class Webhook extends BaseController
     // ----------------------------------------------------------------
     private function handleTextMessage(array $payload, float $startTime): ResponseInterface
     {
-        $senderId    = $payload['sender']['id']      ?? $payload['user_id_by_app'] ?? '';
+        // user_id_by_app = OA-specific ID, required by /v3.0/oa/user/detail and OA messaging APIs
+        // sender.id = global Zalo social ID, not accepted by OA user detail endpoint
+        $senderId    = $payload['user_id_by_app']    ?? $payload['sender']['id'] ?? '';
         $messageText = $payload['message']['text']   ?? '';
         $zaloMsgId   = $payload['message']['msg_id'] ?? '';
 
@@ -230,7 +232,7 @@ class Webhook extends BaseController
     // ----------------------------------------------------------------
     private function handleImageMessage(array $payload): ResponseInterface
     {
-        $senderId = $payload['sender']['id'] ?? $payload['user_id_by_app'] ?? '';
+        $senderId = $payload['user_id_by_app'] ?? $payload['sender']['id'] ?? '';
         if (empty($senderId)) {
             return $this->jsonResponse(['error' => 'Missing sender'], 400);
         }
@@ -250,7 +252,7 @@ class Webhook extends BaseController
     // ----------------------------------------------------------------
     private function handleMediaMessage(array $payload, string $type): ResponseInterface
     {
-        $senderId = $payload['sender']['id'] ?? $payload['user_id_by_app'] ?? '';
+        $senderId = $payload['user_id_by_app'] ?? $payload['sender']['id'] ?? '';
         if (empty($senderId)) {
             return $this->jsonResponse(['error' => 'Missing sender'], 400);
         }
@@ -276,7 +278,7 @@ class Webhook extends BaseController
     // ----------------------------------------------------------------
     private function handleFollow(array $payload): ResponseInterface
     {
-        $senderId = $payload['follower']['id'] ?? $payload['user_id_by_app'] ?? '';
+        $senderId = $payload['user_id_by_app'] ?? $payload['follower']['id'] ?? '';
         if (empty($senderId)) {
             return $this->jsonResponse(['status' => 'ok']);
         }
@@ -318,7 +320,7 @@ class Webhook extends BaseController
     // ----------------------------------------------------------------
     private function handleUnfollow(array $payload): ResponseInterface
     {
-        $senderId = $payload['follower']['id'] ?? $payload['user_id_by_app'] ?? '';
+        $senderId = $payload['user_id_by_app'] ?? $payload['follower']['id'] ?? '';
         if ($senderId) {
             log_message('info', "[Webhook] User unfollowed: $senderId");
         }
