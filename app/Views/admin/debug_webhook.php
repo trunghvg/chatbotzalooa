@@ -79,7 +79,17 @@
                         <small class="text-muted ms-2">API hoạt động bình thường</small>
                     <?php elseif ($apiError): ?>
                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Lỗi: <?= esc($apiError) ?></span>
-                        <?php if (str_contains($apiError, '-403') || str_contains($apiError, 'permission') || str_contains($apiError, '-14')): ?>
+                        <?php if (str_contains($apiError, '-201')): ?>
+                        <div class="mt-2 small bg-warning-subtle border border-warning-subtle rounded p-2">
+                            <strong>Lỗi -201 "param is empty"</strong> — có 2 nguyên nhân:<br>
+                            <strong>1.</strong> Người dùng này chưa nhấn <strong>Quan tâm OA</strong>, nên không có trong danh sách liên hệ.<br>
+                            <strong>2.</strong> OA chưa được cấp quyền <em>Quản lý danh sách người quan tâm</em>.<br><br>
+                            <strong>Cách khắc phục:</strong><br>
+                            &nbsp;• Vào <a href="https://oa.zalo.me/manage/permission" target="_blank">OA Manager &gt; Quyền &amp; cấp phép</a> → bật quyền "Quản lý danh sách người quan tâm"<br>
+                            &nbsp;• Sau đó vào <a href="<?= base_url('zalo/authorize') ?>">Zalo Authorize</a> để cấp lại token<br>
+                            &nbsp;• Hoặc <strong>sửa tên thủ công</strong> trong <a href="<?= base_url('admin/conversations') ?>">màn hình hội thoại</a> (click icon bút chì cạnh tên)
+                        </div>
+                        <?php elseif (str_contains($apiError, '-403') || str_contains($apiError, 'permission') || str_contains($apiError, '-14')): ?>
                         <div class="mt-2 small text-danger">
                             <strong>OA chưa có quyền đọc thông tin người dùng.</strong><br>
                             Vào <a href="https://oa.zalo.me/manage/permission" target="_blank">Zalo OA Manager &gt; Quyền &amp; cấp phép</a>

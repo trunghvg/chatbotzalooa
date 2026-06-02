@@ -416,6 +416,31 @@ class Admin extends BaseController
     }
 
     /**
+     * Cap nhat ten hien thi cho cuoc hoi thoai (admin tu nhap)
+     */
+    public function updateConversationName(int $id): ResponseInterface
+    {
+        $this->requireAuth();
+
+        $name = trim($this->request->getPost('name') ?? '');
+        if (empty($name)) {
+            return $this->jsonResponse(['success' => false, 'message' => 'Tên không được để trống'], 400);
+        }
+
+        $conv = $this->conversationModel->find($id);
+        if (!$conv) {
+            return $this->jsonResponse(['success' => false, 'message' => 'Không tìm thấy hội thoại'], 404);
+        }
+
+        $this->conversationModel->update($id, [
+            'user_name'  => $name,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->jsonResponse(['success' => true, 'name' => $name]);
+    }
+
+    /**
      * Tra ve tin nhan moi hon lastId cho mot cuoc hoi thoai (dung de polling)
      */
     public function apiConversationMessages(int $id): ResponseInterface

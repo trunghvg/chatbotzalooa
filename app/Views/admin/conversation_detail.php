@@ -5,8 +5,22 @@
     <a href="<?= base_url('admin/conversations') ?>" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-arrow-left"></i>
     </a>
-    <div>
-        <h5 class="fw-bold mb-0"><?= esc($conversation['user_name'] ?? 'Học viên') ?></h5>
+    <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2">
+            <h5 class="fw-bold mb-0" id="displayName"><?= esc($conversation['user_name'] ?? 'Học viên') ?></h5>
+            <button class="btn btn-sm btn-link text-muted p-0" onclick="toggleEditName()" title="Sửa tên">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+        </div>
+        <div id="editNameRow" class="d-none mt-1">
+            <div class="input-group input-group-sm" style="max-width:320px">
+                <input type="text" class="form-control" id="nameInput"
+                       value="<?= esc($conversation['user_name'] ?? '') ?>"
+                       placeholder="Nhập tên thật của người dùng...">
+                <button class="btn btn-primary" onclick="saveName()">Lưu</button>
+                <button class="btn btn-outline-secondary" onclick="toggleEditName()">Hủy</button>
+            </div>
+        </div>
         <small class="text-muted">Zalo ID: <?= esc($conversation['zalo_user_id']) ?></small>
     </div>
 </div>
@@ -65,7 +79,7 @@
 
                 <dl class="row mb-0 small">
                     <dt class="col-5 text-muted">Tên:</dt>
-                    <dd class="col-7 fw-semibold"><?= esc($conversation['user_name'] ?? '—') ?></dd>
+                    <dd class="col-7 fw-semibold" id="sidebarName"><?= esc($conversation['user_name'] ?? '—') ?></dd>
 
                     <dt class="col-5 text-muted">Zalo ID:</dt>
                     <dd class="col-7 font-monospace" style="font-size:.75rem;word-break:break-all">
@@ -166,6 +180,35 @@ chatBox.scrollTop = chatBox.scrollHeight;
 
 // Poll every 3 seconds
 setInterval(pollMessages, 3000);
+
+function toggleEditName() {
+    const row = document.getElementById('editNameRow');
+    row.classList.toggle('d-none');
+    if (!row.classList.contains('d-none')) {
+        document.getElementById('nameInput').focus();
+    }
+}
+
+async function saveName() {
+    const newName = document.getElementById('nameInput').value.trim();
+    if (!newName) return;
+
+    const form = new FormData();
+    form.append('name', newName);
+
+    const resp = await fetch('<?= base_url('admin/api/conversations/' . $conversation['id'] . '/update-name') ?>', {
+        method: 'POST', body: form
+    });
+    const data = await resp.json();
+
+    if (data.success) {
+        document.getElementById('displayName').textContent = newName;
+        document.getElementById('sidebarName').textContent = newName;
+        document.getElementById('editNameRow').classList.add('d-none');
+    } else {
+        alert('Lỗi khi lưu tên: ' + (data.message ?? 'Unknown error'));
+    }
+}
 
 async function sendTestMsg() {
     const msg = document.getElementById('testMsg').value.trim();
