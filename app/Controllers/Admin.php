@@ -268,10 +268,34 @@ class Admin extends BaseController
     public function debugWebhook(): string
     {
         $this->requireAuth();
-        $raw = $this->settingModel->get('debug_last_webhook', '(chưa có webhook nào)');
+
+        $rawPayload       = $this->settingModel->get('debug_last_webhook', '(chưa có webhook nào)');
+        $rawProfileResult = $this->settingModel->get('debug_last_user_profile', '(chưa có)');
+
+        // Parse de hien thi chuan doan
+        $payloadArr          = json_decode($rawPayload, true) ?? [];
+        $senderIdFromPayload = $payloadArr['sender']['id'] ?? ($payloadArr['user_id_by_app'] ?? '');
+        $senderNameFromPayload = trim(
+            $payloadArr['sender']['display_name'] ??
+            $payloadArr['sender']['name'] ?? ''
+        );
+
+        $profileArr  = json_decode($rawProfileResult, true) ?? [];
+        $profileData = $profileArr['data'] ?? $profileArr;
+        $nameFromApi = trim($profileData['display_name'] ?? $profileData['name'] ?? '');
+        $apiError    = '';
+        if (isset($profileArr['error']) && $profileArr['error'] !== 0) {
+            $apiError = 'error=' . $profileArr['error'] . ' message=' . ($profileArr['message'] ?? '');
+        }
+
         return view('admin/debug_webhook', [
-            'title'   => 'Debug Webhook Payload',
-            'payload' => $raw,
+            'title'                => 'Debug Webhook Payload',
+            'payload'              => $rawPayload,
+            'userProfileResult'    => $rawProfileResult,
+            'senderIdFromPayload'  => $senderIdFromPayload,
+            'senderNameFromPayload'=> $senderNameFromPayload,
+            'nameFromApi'          => $nameFromApi,
+            'apiError'             => $apiError,
         ]);
     }
 

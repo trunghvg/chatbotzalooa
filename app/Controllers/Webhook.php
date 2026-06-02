@@ -153,10 +153,17 @@ class Webhook extends BaseController
                 ],
             ];
         } else {
-            // Fallback: goi API (can quyen manage_followers)
+            // Fallback: goi API (can quyen manage_official_account_contacts)
             $userProfile = [];
             try {
                 $userProfile = $this->zalo->getUserProfile($senderId);
+                // Luu ket qua de debug qua trang admin
+                try {
+                    $this->settingModel->saveSetting(
+                        'debug_last_user_profile',
+                        json_encode($userProfile, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+                    );
+                } catch (\Throwable $ignored) {}
             } catch (\Throwable $e) {
                 log_message('warning', '[Webhook] Could not fetch user profile: ' . $e->getMessage());
             }
