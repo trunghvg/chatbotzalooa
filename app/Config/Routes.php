@@ -74,3 +74,6 @@ $routes->get('cron/refresh-token', 'Admin::cronRefreshToken');
 
 // Export database
 $routes->get('admin/export-db', 'Admin::exportDatabase');
+
+// Debug webhook payload
+$routes->get('admin/debug-webhook', 'Admin::debugWebhook');

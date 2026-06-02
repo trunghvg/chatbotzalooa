@@ -263,6 +263,19 @@ class Admin extends BaseController
     }
 
     /**
+     * Debug: xem webhook payload moi nhat tu Zalo
+     */
+    public function debugWebhook(): string
+    {
+        $this->requireAuth();
+        $raw = $this->settingModel->get('debug_last_webhook', '(chưa có webhook nào)');
+        return view('admin/debug_webhook', [
+            'title'   => 'Debug Webhook Payload',
+            'payload' => $raw,
+        ]);
+    }
+
+    /**
      * Xuat toan bo database ra file .sql (download truc tiep)
      */
     public function exportDatabase(): ResponseInterface

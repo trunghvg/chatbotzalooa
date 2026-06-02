@@ -101,10 +101,13 @@ class Webhook extends BaseController
             }
 
             $eventName = $payload['event_name'] ?? 'unknown';
-            $senderLog = $payload['sender'] ?? $payload['follower'] ?? [];
-            log_message('info', '[Webhook] Event: ' . $eventName
-                . ' sender_id=' . ($senderLog['id'] ?? '?')
-                . ' name=' . ($senderLog['display_name'] ?? $senderLog['name'] ?? '(none)'));
+            // Log toan bo payload de debug (xem Railway logs)
+            log_message('info', '[Webhook] FULL_PAYLOAD: ' . json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+            // Luu payload moi nhat vao DB de xem qua admin
+            try {
+                $this->settingModel->saveSetting('debug_last_webhook', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            } catch (\Throwable $e) {}
 
             $eventName = $payload['event_name'] ?? $eventName;
 
