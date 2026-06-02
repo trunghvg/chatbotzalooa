@@ -50,8 +50,14 @@
     <div class="card-body">
         <table class="table table-sm table-bordered mb-0">
             <tr>
-                <th style="width:200px">Sender ID (từ webhook)</th>
-                <td><code><?= esc($senderIdFromPayload) ?></code></td>
+                <th style="width:220px">sender.id (Zalo social ID)</th>
+                <td><code><?= esc($senderIdGlobal) ?></code>
+                    <small class="text-muted ms-2">Không dùng cho OA API</small></td>
+            </tr>
+            <tr>
+                <th>user_id_by_app <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Dùng cho API</span></th>
+                <td><code><?= esc($userIdByApp) ?></code>
+                    <small class="text-success ms-2">Đây là ID đúng để gọi getUserProfile</small></td>
             </tr>
             <tr>
                 <th>display_name (trong webhook)</th>

@@ -274,7 +274,10 @@ class Admin extends BaseController
 
         // Parse de hien thi chuan doan
         $payloadArr          = json_decode($rawPayload, true) ?? [];
-        $senderIdFromPayload = $payloadArr['sender']['id'] ?? ($payloadArr['user_id_by_app'] ?? '');
+        // user_id_by_app la ID dung cho OA API; sender.id la Zalo social ID
+        $senderIdFromPayload   = $payloadArr['user_id_by_app'] ?? ($payloadArr['sender']['id'] ?? '');
+        $senderIdGlobal        = $payloadArr['sender']['id']    ?? '';
+        $userIdByApp           = $payloadArr['user_id_by_app']  ?? '';
         $senderNameFromPayload = trim(
             $payloadArr['sender']['display_name'] ??
             $payloadArr['sender']['name'] ?? ''
@@ -293,6 +296,8 @@ class Admin extends BaseController
             'payload'              => $rawPayload,
             'userProfileResult'    => $rawProfileResult,
             'senderIdFromPayload'  => $senderIdFromPayload,
+            'senderIdGlobal'       => $senderIdGlobal,
+            'userIdByApp'          => $userIdByApp,
             'senderNameFromPayload'=> $senderNameFromPayload,
             'nameFromApi'          => $nameFromApi,
             'apiError'             => $apiError,
