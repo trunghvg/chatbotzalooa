@@ -36,6 +36,9 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts
 RUN mkdir -p writable/logs writable/cache writable/session writable/uploads \
     && chmod -R 777 writable/
 
+# Tang gioi han upload/execution time cho import file lon (PDF/Word nhieu trang)
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
 # nginx config
 COPY nginx.conf /etc/nginx/sites-available/default
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \

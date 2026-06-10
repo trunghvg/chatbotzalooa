@@ -194,6 +194,7 @@
                         <strong>Claude AI tự động:</strong> Đọc tài liệu, phân tích nội dung, tạo các mục kiến thức phù hợp
                         với hoạt động của Phường Lê Chân theo văn phong chính trị - nhà nước.
                         <br><span class="text-muted">Lưu ý: PDF phải là file text (không phải ảnh scan). Excel được xử lý trực tiếp không qua AI.</span>
+                        <br><span class="text-muted">Tài liệu dài (nhiều trang) sẽ được chia nhỏ và xử lý lần lượt — quá trình import có thể mất vài phút, vui lòng không đóng trang khi đang xử lý.</span>
                     </div>
 
                     <div class="mb-3">
